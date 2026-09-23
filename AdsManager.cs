@@ -593,6 +593,15 @@ public class AdsManager : MonoBehaviour
 
     private void TryShowInterstitial()
     {
+        if (!CanShowAds())
+        {
+            Log(
+                "Ad skipped: purchase state does not allow ads."
+            );
+
+            return;
+        }
+
         if (isShowing)
         {
             Log(
@@ -683,6 +692,19 @@ public class AdsManager : MonoBehaviour
 
     private void ShowInterstitialAfterDelay()
     {
+        if (!CanShowAds())
+        {
+            isShowing = false;
+
+            HideAdsPanel();
+
+            Log(
+                "Interstitial cancelled: purchase state does not allow ads."
+            );
+
+            return;
+        }
+
         if (!isShowing)
         {
             HideAdsPanel();
@@ -850,9 +872,22 @@ public class AdsManager : MonoBehaviour
     public bool IsInterstitialReady()
     {
         return
+            CanShowAds() &&
             interstitialAd != null &&
             !isShowing &&
             interstitialAd.IsAdReady();
+    }
+
+
+    private bool CanShowAds()
+    {
+        PurchaseManager purchaseManager =
+            PurchaseManager.Instance;
+
+        return
+            purchaseManager != null &&
+            purchaseManager.IsInitialized &&
+            !purchaseManager.IsGamePurchased;
     }
 
 
