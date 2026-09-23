@@ -234,7 +234,8 @@ public class PurchaseManager : MonoBehaviour
      * ========================================
      */
 
-    public void EditorResetPurchase()
+    public void EditorSetPurchased(
+        bool purchased)
     {
         if (!isInitialized)
         {
@@ -242,7 +243,7 @@ public class PurchaseManager : MonoBehaviour
         }
 
         SetPurchased(
-            false
+            purchased
         );
     }
 
