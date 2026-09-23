@@ -5,13 +5,6 @@ using UnityEngine;
 [CustomEditor(typeof(GameManager))]
 public class GameManagerEditor : Editor
 {
-    private static readonly string[] TestModeLabels =
-    {
-        "Bình thường",
-        "Level Completed",
-        "Game Completed"
-    };
-
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
@@ -25,32 +18,21 @@ public class GameManagerEditor : Editor
             EditorStyles.boldLabel
         );
 
-        EditorGUI.BeginChangeCheck();
-
-        int selectedIndex =
-            GUILayout.SelectionGrid(
-                (int)gameManager.CurrentEditorTestMode,
-                TestModeLabels,
-                TestModeLabels.Length
-            );
-
-        if (!EditorGUI.EndChangeCheck())
+        using (new EditorGUI.DisabledScope(
+                   !Application.isPlaying))
         {
-            return;
+            if (GUILayout.Button(
+                    "Level Completed"))
+            {
+                gameManager.CompleteLevel();
+            }
+
+            if (GUILayout.Button(
+                    "Game Completed"))
+            {
+                gameManager.CompleteGame();
+            }
         }
-
-        Undo.RecordObject(
-            gameManager,
-            "Change Game Test Mode"
-        );
-
-        gameManager.SetEditorTestMode(
-            (GameManager.EditorTestMode)selectedIndex
-        );
-
-        EditorUtility.SetDirty(
-            gameManager
-        );
     }
 }
 #endif
