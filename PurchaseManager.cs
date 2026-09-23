@@ -67,10 +67,6 @@ public class PurchaseManager : MonoBehaviour
             return;
         }
 
-        DontDestroyOnLoad(
-            gameObject
-        );
-
         InitializePurchase();
     }
 
