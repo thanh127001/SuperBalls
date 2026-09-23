@@ -234,17 +234,40 @@ public class PurchaseManager : MonoBehaviour
      * ========================================
      */
 
+    public static bool EditorPurchased
+    {
+        get
+        {
+            return
+                PlayerPrefs.GetInt(
+                    PurchaseKey,
+                    0
+                ) == 1;
+        }
+    }
+
+
     public void EditorSetPurchased(
         bool purchased)
     {
-        if (!isInitialized)
+        if (Application.isPlaying &&
+            isInitialized)
         {
+            SetPurchased(
+                purchased
+            );
+
             return;
         }
 
-        SetPurchased(
+        PlayerPrefs.SetInt(
+            PurchaseKey,
             purchased
+                ? 1
+                : 0
         );
+
+        PlayerPrefs.Save();
     }
 
 #endif
