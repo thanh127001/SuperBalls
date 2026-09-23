@@ -5,6 +5,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GoTextController : MonoBehaviour
 {
+    /*
+     * ========================================
+     * REFERENCES
+     * ========================================
+     */
+
     [Header("References")]
     [SerializeField] private GameManager gameManager;
     [SerializeField] private ScoreController scoreController;
@@ -13,36 +19,50 @@ public class GoTextController : MonoBehaviour
     [Tooltip("TMP Text dùng để hiển thị intro, GO!, GOOD!, GREAT!, EXCELLENT!, AWESOME! và PERFECT!.")]
     [SerializeField] private TMP_Text goText;
 
-    // Intro text animation settings
-    private float introAnimationDelay = 0.5f;
-    private float introVisibleDuration = 2f;
 
-    // GO! text animation settings
-    private float goAnimationDelay = 0.5f;
-    private float goVisibleDuration = 1.5f;
+    /*
+     * ========================================
+     * MESSAGE SETTINGS
+     * ========================================
+     */
 
-    // Praise text animation settings
-    private float praiseAnimationDelay = 0f;
-    private float praiseVisibleDuration = 0.8f;
+    private const string GoMessage = "GO!";
 
-    // Animation settings
-    private float zoomInDuration = 0.2f;
-    private float settleDuration = 0.1f;
-    private float zoomOutDuration = 0.2f;
-    private float minimumMessageScale = 0.5f;
-    private float maximumMessageScale = 1.2f;
+    private const float GoAnimationDelay = 0.5f;
+    private const float GoVisibleDuration = 1.5f;
 
-    private Coroutine messageAnimationCoroutine;
-    private string originalGoTextContent = "GO!";
+    private const float PraiseAnimationDelay = 0f;
+    private const float PraiseVisibleDuration = 0.8f;
+
+    // Animation in/out dùng chung cho mọi message.
+    private const float ZoomInDuration = 0.2f;
+    private const float SettleDuration = 0.1f;
+    private const float ZoomOutDuration = 0.2f;
+    private const float MinimumMessageScale = 0.5f;
+    private const float MaximumMessageScale = 1.2f;
+
+
+    /*
+     * ========================================
+     * RUNTIME STATE
+     * ========================================
+     */
+
+    private Coroutine messageCoroutine;
+
     private Vector3 goTextOriginalScale = Vector3.one;
 
     private bool hasPlayedGoAnimation;
     private bool hasPlayedLevelIntroAnimation;
-    private bool isPlayingLevelIntroAnimation;
     private int previousComboScore;
-
     private bool isPlayable;
-    private bool isSpawnable;
+
+
+    /*
+     * ========================================
+     * UNITY
+     * ========================================
+     */
 
     private void Awake()
     {
@@ -61,27 +81,22 @@ public class GoTextController : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeEvents();
-        StopMessageAnimation();
-        HideMessageImmediately();
+        StopMessageImmediately();
     }
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        introAnimationDelay = Mathf.Max(0f, introAnimationDelay);
-        introVisibleDuration = Mathf.Max(0f, introVisibleDuration);
-        goAnimationDelay = Mathf.Max(0f, goAnimationDelay);
-        goVisibleDuration = Mathf.Max(0f, goVisibleDuration);
-        praiseAnimationDelay = Mathf.Max(0f, praiseAnimationDelay);
-        praiseVisibleDuration = Mathf.Max(0f, praiseVisibleDuration);
-        zoomInDuration = Mathf.Max(0.01f, zoomInDuration);
-        settleDuration = Mathf.Max(0f, settleDuration);
-        zoomOutDuration = Mathf.Max(0.01f, zoomOutDuration);
-        minimumMessageScale = Mathf.Max(0f, minimumMessageScale);
-        maximumMessageScale = Mathf.Max(0f, maximumMessageScale);
         FindReferences();
     }
 #endif
+
+
+    /*
+     * ========================================
+     * REFERENCES
+     * ========================================
+     */
 
     private void FindReferences()
     {
@@ -96,21 +111,36 @@ public class GoTextController : MonoBehaviour
         }
     }
 
-    private void SubscribeEvents()
+    private void InitializeMessage()
     {
-        if (gameManager == null)
+        if (goText == null)
         {
             return;
         }
 
-        gameManager.OnGameStateChanged -= HandleGameStateChanged;
-        gameManager.OnGameStateChanged += HandleGameStateChanged;
+        goTextOriginalScale = goText.rectTransform.localScale;
+    }
 
-        gameManager.OnPlayingChanged -= HandlePlayingChanged;
-        gameManager.OnPlayingChanged += HandlePlayingChanged;
 
-        gameManager.OnLevelChanged -= HandleLevelChanged;
-        gameManager.OnLevelChanged += HandleLevelChanged;
+    /*
+     * ========================================
+     * EVENTS
+     * ========================================
+     */
+
+    private void SubscribeEvents()
+    {
+        if (gameManager != null)
+        {
+            gameManager.OnGameStateChanged -= HandleGameStateChanged;
+            gameManager.OnGameStateChanged += HandleGameStateChanged;
+
+            gameManager.OnPlayingChanged -= HandlePlayingChanged;
+            gameManager.OnPlayingChanged += HandlePlayingChanged;
+
+            gameManager.OnLevelChanged -= HandleLevelChanged;
+            gameManager.OnLevelChanged += HandleLevelChanged;
+        }
 
         if (scoreController != null)
         {
@@ -124,14 +154,13 @@ public class GoTextController : MonoBehaviour
 
     private void UnsubscribeEvents()
     {
-        if (gameManager == null)
+        if (gameManager != null)
         {
-            return;
+            gameManager.OnGameStateChanged -= HandleGameStateChanged;
+            gameManager.OnPlayingChanged -= HandlePlayingChanged;
+            gameManager.OnLevelChanged -= HandleLevelChanged;
         }
 
-        gameManager.OnGameStateChanged -= HandleGameStateChanged;
-        gameManager.OnPlayingChanged -= HandlePlayingChanged;
-        gameManager.OnLevelChanged -= HandleLevelChanged;
         if (scoreController != null)
         {
             scoreController.OnComboChanged -= HandleComboChanged;
@@ -139,50 +168,48 @@ public class GoTextController : MonoBehaviour
         }
     }
 
-    private void InitializeMessage()
-    {
-        if (goText == null)
-        {
-            return;
-        }
 
-        goTextOriginalScale = goText.rectTransform.localScale;
-
-        if (!string.IsNullOrWhiteSpace(goText.text))
-        {
-            originalGoTextContent = goText.text;
-        }
-    }
+    /*
+     * ========================================
+     * STATE
+     * ========================================
+     */
 
     private void RefreshState()
     {
-        previousComboScore = scoreController != null
-            ? scoreController.CurrentComboScore
-            : 0;
+        previousComboScore =
+            scoreController != null
+                ? scoreController.CurrentComboScore
+                : 0;
 
         if (gameManager == null)
         {
-            HideMessageImmediately();
+            StopMessageImmediately();
             return;
         }
+
+        isPlayable = gameManager.EffectivePlayable;
 
         HandleGameStateChanged();
 
         if (isPlayable)
         {
-            TryPlayGoAnimation();
+            TryShowGo();
         }
     }
 
     private void HandleGameStateChanged()
     {
-        if (gameManager == null) return;
+        if (gameManager == null)
+        {
+            return;
+        }
 
         switch (gameManager.State)
         {
             case GameState.Playing:
-                TryPlayLevelIntroAnimation();
-                TryPlayGoAnimation();
+                TryShowLevelIntro();
+                TryShowGo();
                 break;
 
             case GameState.Ready:
@@ -196,54 +223,118 @@ public class GoTextController : MonoBehaviour
             case GameState.GameOver:
             case GameState.None:
             default:
-                StopMessageAnimation();
-                HideMessageImmediately();
+                StopMessageImmediately();
                 break;
         }
     }
 
     private void HandlePlayingChanged()
     {
-        if (gameManager == null) return;
-
-        isPlayable = gameManager.EffectivePlayable;
-        isSpawnable = gameManager.EffectiveSpawnable;
-
-        if (!isPlayable)
+        if (gameManager == null)
         {
-            /*
-             * Khi level intro đang chạy, playable vẫn có thể false.
-             * Không hủy intro chỉ vì event false.
-             */
-            if (!isPlayingLevelIntroAnimation)
-            {
-                StopMessageAnimation();
-                HideMessageImmediately();
-            }
-
             return;
         }
 
-        TryPlayGoAnimation();
+        isPlayable = gameManager.EffectivePlayable;
+
+        if (!isPlayable)
+        {
+            return;
+        }
+
+        TryShowGo();
     }
 
     private void HandleLevelChanged()
     {
         hasPlayedGoAnimation = false;
         hasPlayedLevelIntroAnimation = false;
-        isPlayingLevelIntroAnimation = false;
         previousComboScore = 0;
 
-        StopMessageAnimation();
-        HideMessageImmediately();
+        StopMessageImmediately();
     }
+
+
+    /*
+     * ========================================
+     * LEVEL INTRO
+     * ========================================
+     */
+
+    private void TryShowLevelIntro()
+    {
+        if (gameManager == null ||
+            gameManager.State != GameState.Playing ||
+            hasPlayedLevelIntroAnimation)
+        {
+            return;
+        }
+
+        hasPlayedLevelIntroAnimation = true;
+
+        LevelConfig config =
+            gameManager.GetCurrentLevelConfig();
+
+        if (config == null ||
+            string.IsNullOrWhiteSpace(config.IntroText))
+        {
+            return;
+        }
+
+        // Không truyền visibleDuration:
+        // intro được giữ vô thời hạn cho đến khi có message mới.
+        ShowText(
+            config.IntroText,
+            requirePlayerInteraction: false
+        );
+    }
+
+
+    /*
+     * ========================================
+     * GO
+     * ========================================
+     */
+
+    private void TryShowGo()
+    {
+        if (gameManager == null ||
+            gameManager.State != GameState.Playing ||
+            !isPlayable ||
+            hasPlayedGoAnimation)
+        {
+            return;
+        }
+
+        hasPlayedGoAnimation = true;
+
+        ShowText(
+            GoMessage,
+            GoAnimationDelay,
+            GoVisibleDuration
+        );
+    }
+
+
+    /*
+     * ========================================
+     * COMBO
+     * ========================================
+     */
 
     private void HandleComboChanged()
     {
-        if (scoreController == null) return;
+        if (scoreController == null)
+        {
+            return;
+        }
 
-        int currentComboScore = scoreController.CurrentComboScore;
-        int requiredComboScore = ScoreController.RequiredComboScore;
+        int currentComboScore =
+            scoreController.CurrentComboScore;
+
+        int requiredComboScore =
+            ScoreController.RequiredComboScore;
+
         bool comboIncreased =
             currentComboScore > previousComboScore;
 
@@ -262,63 +353,7 @@ public class GoTextController : MonoBehaviour
 
     private void HandleComboCompleted()
     {
-        ShowCombo();
-    }
-
-    private void TryPlayLevelIntroAnimation()
-    {
-        if (gameManager == null ||
-            gameManager.State != GameState.Playing ||
-            hasPlayedLevelIntroAnimation)
-        {
-            return;
-        }
-
-        hasPlayedLevelIntroAnimation = true;
-
-        LevelConfig config =
-            gameManager.GetCurrentLevelConfig();
-
-        if (config == null ||
-            string.IsNullOrWhiteSpace(config.IntroText))
-        {
-            isPlayingLevelIntroAnimation = false;
-            TryPlayGoAnimation();
-            return;
-        }
-
-        isPlayingLevelIntroAnimation = true;
-
-        PlayMessageAnimation(
-            config.IntroText,
-            introAnimationDelay,
-            introVisibleDuration,
-            requirePlayerInteraction: false,
-            isLevelIntro: true
-        );
-    }
-
-    private void TryPlayGoAnimation()
-    {
-        if (gameManager == null ||
-            !isPlayable)
-        {
-            return;
-        }
-
-        if (hasPlayedGoAnimation ||
-            isPlayingLevelIntroAnimation)
-        {
-            return;
-        }
-
-        hasPlayedGoAnimation = true;
-
-        PlayMessageAnimation(
-            originalGoTextContent,
-            goAnimationDelay,
-            goVisibleDuration
-        );
+        ShowComboCompletedPraise();
     }
 
     private void ShowComboProgressPraise(
@@ -356,33 +391,54 @@ public class GoTextController : MonoBehaviour
             message = "AWESOME!";
         }
 
-        PlayMessageAnimation(
+        ShowText(
             message,
-            praiseAnimationDelay,
-            praiseVisibleDuration
+            PraiseAnimationDelay,
+            PraiseVisibleDuration
         );
     }
 
-    private void ShowCombo()
+    private void ShowComboCompletedPraise()
     {
         if (!CanShowGameplayMessage())
         {
             return;
         }
 
-        PlayMessageAnimation(
+        ShowText(
             "PERFECT!",
-            praiseAnimationDelay,
-            praiseVisibleDuration
+            PraiseAnimationDelay,
+            PraiseVisibleDuration
         );
     }
 
-    private void PlayMessageAnimation(
+
+    /*
+     * ========================================
+     * SHOW TEXT
+     * ========================================
+     */
+
+    /// <summary>
+    /// Hiển thị một gameplay message.
+    ///
+    /// delay:
+    /// - mặc định 0: không delay.
+    ///
+    /// visibleDuration:
+    /// - null: giữ vô thời hạn.
+    /// - có giá trị: thời gian giữ sau animation in
+    ///   và trước animation out.
+    ///
+    /// Khi có message mới trong lúc message cũ đang hiển thị,
+    /// message cũ sẽ chạy animation out trước,
+    /// sau đó message mới mới bắt đầu delay + animation in.
+    /// </summary>
+    private void ShowText(
         string message,
-        float delay,
-        float visibleDuration,
-        bool requirePlayerInteraction = true,
-        bool isLevelIntro = false)
+        float delay = 0f,
+        float? visibleDuration = null,
+        bool requirePlayerInteraction = true)
     {
         if (goText == null ||
             string.IsNullOrWhiteSpace(message))
@@ -390,27 +446,34 @@ public class GoTextController : MonoBehaviour
             return;
         }
 
-        StopMessageAnimation();
+        if (messageCoroutine != null)
+        {
+            StopCoroutine(messageCoroutine);
+        }
 
-        messageAnimationCoroutine =
+        messageCoroutine =
             StartCoroutine(
-                PlayMessageAnimationRoutine(
+                ShowTextRoutine(
                     message,
-                    delay,
+                    Mathf.Max(0f, delay),
                     visibleDuration,
-                    requirePlayerInteraction,
-                    isLevelIntro
+                    requirePlayerInteraction
                 )
             );
     }
 
-    private IEnumerator PlayMessageAnimationRoutine(
+    private IEnumerator ShowTextRoutine(
         string message,
         float delay,
-        float visibleDuration,
-        bool requirePlayerInteraction,
-        bool isLevelIntro)
+        float? visibleDuration,
+        bool requirePlayerInteraction)
     {
+        // Nếu message cũ đang hiện, luôn out trước.
+        if (goText.gameObject.activeSelf)
+        {
+            yield return AnimateOut();
+        }
+
         HideMessageImmediately();
 
         if (delay > 0f)
@@ -420,41 +483,94 @@ public class GoTextController : MonoBehaviour
 
         if (!CanShowMessage(requirePlayerInteraction))
         {
-            FinishAbortedMessage(isLevelIntro);
+            messageCoroutine = null;
             yield break;
         }
 
         goText.text = message;
-        SetMessageScale(minimumMessageScale);
+        SetMessageScale(MinimumMessageScale);
         SetMessageAlpha(0f);
+        goText.gameObject.SetActive(true);
 
-        if (!goText.gameObject.activeSelf)
+        yield return AnimateIn(requirePlayerInteraction);
+
+        if (!CanShowMessage(requirePlayerInteraction))
         {
-            goText.gameObject.SetActive(true);
+            HideMessageImmediately();
+            messageCoroutine = null;
+            yield break;
         }
+
+        // null = hiển thị vô thời hạn.
+        if (!visibleDuration.HasValue)
+        {
+            while (CanShowMessage(requirePlayerInteraction))
+            {
+                yield return null;
+            }
+
+            HideMessageImmediately();
+            messageCoroutine = null;
+            yield break;
+        }
+
+        float waitDuration =
+            Mathf.Max(0f, visibleDuration.Value);
 
         float elapsedTime = 0f;
 
-        while (elapsedTime < zoomInDuration)
+        while (elapsedTime < waitDuration)
         {
             if (!CanShowMessage(requirePlayerInteraction))
             {
-                FinishAbortedMessage(isLevelIntro);
+                HideMessageImmediately();
+                messageCoroutine = null;
+                yield break;
+            }
+
+            elapsedTime += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        yield return AnimateOut();
+
+        HideMessageImmediately();
+        messageCoroutine = null;
+    }
+
+
+    /*
+     * ========================================
+     * ANIMATION
+     * ========================================
+     */
+
+    private IEnumerator AnimateIn(
+        bool requirePlayerInteraction)
+    {
+        float elapsedTime = 0f;
+
+        while (elapsedTime < ZoomInDuration)
+        {
+            if (!CanShowMessage(requirePlayerInteraction))
+            {
                 yield break;
             }
 
             elapsedTime += Time.unscaledDeltaTime;
 
             float progress =
-                Mathf.Clamp01(elapsedTime / zoomInDuration);
+                Mathf.Clamp01(
+                    elapsedTime / ZoomInDuration
+                );
 
             float easedProgress =
                 EaseOutBack(progress);
 
             float scale =
                 Mathf.LerpUnclamped(
-                    minimumMessageScale,
-                    maximumMessageScale,
+                    MinimumMessageScale,
+                    MaximumMessageScale,
                     easedProgress
                 );
 
@@ -464,34 +580,35 @@ public class GoTextController : MonoBehaviour
             yield return null;
         }
 
-        SetMessageScale(maximumMessageScale);
+        SetMessageScale(MaximumMessageScale);
         SetMessageAlpha(1f);
 
         elapsedTime = 0f;
 
-        while (elapsedTime < settleDuration)
+        while (elapsedTime < SettleDuration)
         {
             if (!CanShowMessage(requirePlayerInteraction))
             {
-                FinishAbortedMessage(isLevelIntro);
                 yield break;
             }
 
             elapsedTime += Time.unscaledDeltaTime;
 
             float progress =
-                settleDuration <= 0f
-                    ? 1f
-                    : Mathf.Clamp01(
-                        elapsedTime / settleDuration
-                    );
+                Mathf.Clamp01(
+                    elapsedTime / SettleDuration
+                );
 
             progress =
-                Mathf.SmoothStep(0f, 1f, progress);
+                Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    progress
+                );
 
             SetMessageScale(
                 Mathf.Lerp(
-                    maximumMessageScale,
+                    MaximumMessageScale,
                     1f,
                     progress
                 )
@@ -502,72 +619,87 @@ public class GoTextController : MonoBehaviour
 
         SetMessageScale(1f);
         SetMessageAlpha(1f);
+    }
 
-        elapsedTime = 0f;
-
-        while (elapsedTime < visibleDuration)
+    private IEnumerator AnimateOut()
+    {
+        if (goText == null ||
+            !goText.gameObject.activeSelf)
         {
-            if (!CanShowMessage(requirePlayerInteraction))
-            {
-                FinishAbortedMessage(isLevelIntro);
-                yield break;
-            }
-
-            elapsedTime += Time.unscaledDeltaTime;
-            yield return null;
+            yield break;
         }
 
-        elapsedTime = 0f;
+        Vector3 startScale =
+            goText.rectTransform.localScale;
 
-        while (elapsedTime < zoomOutDuration)
+        float startAlpha =
+            goText.color.a;
+
+        float elapsedTime = 0f;
+
+        while (elapsedTime < ZoomOutDuration)
         {
-            if (!CanShowMessage(requirePlayerInteraction))
-            {
-                FinishAbortedMessage(isLevelIntro);
-                yield break;
-            }
-
             elapsedTime += Time.unscaledDeltaTime;
 
             float progress =
-                Mathf.Clamp01(elapsedTime / zoomOutDuration);
+                Mathf.Clamp01(
+                    elapsedTime / ZoomOutDuration
+                );
 
             progress =
-                Mathf.SmoothStep(0f, 1f, progress);
-
-            SetMessageScale(
-                Mathf.Lerp(
+                Mathf.SmoothStep(
+                    0f,
                     1f,
-                    minimumMessageScale,
+                    progress
+                );
+
+            goText.rectTransform.localScale =
+                Vector3.Lerp(
+                    startScale,
+                    goTextOriginalScale *
+                    MinimumMessageScale,
+                    progress
+                );
+
+            SetMessageAlpha(
+                Mathf.Lerp(
+                    startAlpha,
+                    0f,
                     progress
                 )
             );
 
-            SetMessageAlpha(1f - progress);
-
             yield return null;
         }
 
-        HideMessageImmediately();
-        messageAnimationCoroutine = null;
-
-        if (isLevelIntro)
-        {
-            isPlayingLevelIntroAnimation = false;
-            TryPlayGoAnimation();
-        }
+        SetMessageScale(MinimumMessageScale);
+        SetMessageAlpha(0f);
     }
 
-    private void FinishAbortedMessage(bool isLevelIntro)
+    private static float EaseOutBack(float progress)
     {
-        HideMessageImmediately();
-        messageAnimationCoroutine = null;
+        const float Overshoot = 1.70158f;
 
-        if (isLevelIntro)
-        {
-            isPlayingLevelIntroAnimation = false;
-        }
+        float adjusted =
+            progress - 1f;
+
+        return
+            1f +
+            (Overshoot + 1f) *
+            adjusted *
+            adjusted *
+            adjusted +
+            Overshoot *
+            adjusted *
+            adjusted;
     }
+
+
+    /*
+     * ========================================
+     * CONDITIONS
+     * ========================================
+     */
 
     private bool CanShowMessage(
         bool requirePlayerInteraction)
@@ -591,42 +723,29 @@ public class GoTextController : MonoBehaviour
         return CanShowMessage(true);
     }
 
-    private static float EaseOutBack(float progress)
-    {
-        const float overshoot = 1.70158f;
 
-        float adjusted = progress - 1f;
-
-        return
-            1f +
-            (overshoot + 1f) *
-            adjusted *
-            adjusted *
-            adjusted +
-            overshoot *
-            adjusted *
-            adjusted;
-    }
-
-    private void StopMessageAnimation()
-    {
-        if (messageAnimationCoroutine == null)
-        {
-            return;
-        }
-
-        StopCoroutine(messageAnimationCoroutine);
-        messageAnimationCoroutine = null;
-    }
+    /*
+     * ========================================
+     * RESET / HIDE
+     * ========================================
+     */
 
     private void ResetAllMessageState()
     {
-        StopMessageAnimation();
-
         hasPlayedGoAnimation = false;
         hasPlayedLevelIntroAnimation = false;
-        isPlayingLevelIntroAnimation = false;
         previousComboScore = 0;
+
+        StopMessageImmediately();
+    }
+
+    private void StopMessageImmediately()
+    {
+        if (messageCoroutine != null)
+        {
+            StopCoroutine(messageCoroutine);
+            messageCoroutine = null;
+        }
 
         HideMessageImmediately();
     }
@@ -640,7 +759,7 @@ public class GoTextController : MonoBehaviour
 
         SetMessageAlpha(1f);
         ResetMessageScale();
-        goText.text = originalGoTextContent;
+        goText.text = GoMessage;
 
         if (goText.gameObject.activeSelf)
         {
