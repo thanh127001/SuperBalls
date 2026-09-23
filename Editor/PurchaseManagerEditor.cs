@@ -18,23 +18,24 @@ public class PurchaseManagerEditor : Editor
             EditorStyles.boldLabel
         );
 
-        using (new EditorGUI.DisabledScope(
-                   !Application.isPlaying ||
-                   !purchaseManager.IsInitialized))
-        {
-            bool purchased =
-                EditorGUILayout.Toggle(
-                    "Purchased",
-                    purchaseManager.IsGamePurchased
-                );
+        bool currentPurchased =
+            Application.isPlaying &&
+            purchaseManager.IsInitialized
+                ? purchaseManager.IsGamePurchased
+                : PurchaseManager.EditorPurchased;
 
-            if (purchased !=
-                purchaseManager.IsGamePurchased)
-            {
-                purchaseManager.EditorSetPurchased(
-                    purchased
-                );
-            }
+        bool purchased =
+            EditorGUILayout.Toggle(
+                "Purchased",
+                currentPurchased
+            );
+
+        if (purchased !=
+            currentPurchased)
+        {
+            purchaseManager.EditorSetPurchased(
+                purchased
+            );
         }
     }
 }
