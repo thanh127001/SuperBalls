@@ -444,19 +444,23 @@ public class GameManager : MonoBehaviour
     private void OnApplicationFocus(
         bool hasFocus)
     {
+#if !UNITY_EDITOR
         if (!hasFocus)
         {
             PauseGame();
         }
+#endif
     }
 
     private void OnApplicationPause(
         bool pauseStatus)
     {
+#if !UNITY_EDITOR
         if (pauseStatus)
         {
             PauseGame();
         }
+#endif
     }
 
 #if UNITY_EDITOR
