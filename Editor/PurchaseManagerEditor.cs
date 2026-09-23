@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine;
 
 [CustomEditor(typeof(PurchaseManager))]
 public class PurchaseManagerEditor : Editor
