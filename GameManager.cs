@@ -134,6 +134,55 @@ public class GameManager : MonoBehaviour
 
     /*
      * ========================================
+     * EDITOR TEST
+     * ========================================
+     */
+#if UNITY_EDITOR
+    public enum EditorTestMode
+    {
+        Normal,
+        LevelCompleted,
+        GameCompleted
+    }
+
+    [HideInInspector]
+    [SerializeField]
+    private EditorTestMode editorTestMode =
+        EditorTestMode.Normal;
+
+    public EditorTestMode CurrentEditorTestMode =>
+        editorTestMode;
+
+    public void SetEditorTestMode(
+        EditorTestMode testMode)
+    {
+        if (editorTestMode == testMode)
+        {
+            return;
+        }
+
+        editorTestMode = testMode;
+
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        switch (editorTestMode)
+        {
+            case EditorTestMode.LevelCompleted:
+                CompleteLevel();
+                break;
+
+            case EditorTestMode.GameCompleted:
+                CompleteGame();
+                break;
+        }
+    }
+#endif
+
+    /*
+     * ========================================
      * GAME EVENTS
      * ========================================
      */
