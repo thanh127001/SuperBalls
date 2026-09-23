@@ -1625,6 +1625,16 @@ public class BallDanceController : MonoBehaviour
         }
 
         /*
+         * Border màu cam.
+         */
+        Gizmos.color = new Color(
+            1f,
+            0.5f,
+            0f,
+            1f
+        );
+
+        /*
          * Border của Area.
          */
         Gizmos.DrawWireCube(
