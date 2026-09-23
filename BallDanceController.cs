@@ -1624,11 +1624,9 @@ public class BallDanceController : MonoBehaviour
             return;
         }
 
-
         /*
-         * Hình chữ nhật chính.
+         * Border của Area.
          */
-
         Gizmos.DrawWireCube(
             transform.position,
             new Vector3(
@@ -1638,26 +1636,20 @@ public class BallDanceController : MonoBehaviour
             )
         );
 
-
         /*
-         * Giới hạn spawn / destroy bên ngoài.
+         * Border của Area + OutsideOffset.
+         *
+         * OutsideOffset được tính trực tiếp từ
+         * mép Area ra ngoài ở cả 4 phía.
          */
-
-        float outsideExpansion =
-            (
-                BallRadius +
-                OutsideOffset
-            ) *
-            2f;
-
         Gizmos.DrawWireCube(
             transform.position,
             new Vector3(
                 AreaWidth +
-                outsideExpansion,
+                OutsideOffset * 2f,
 
                 AreaHeight +
-                outsideExpansion,
+                OutsideOffset * 2f,
 
                 0f
             )
