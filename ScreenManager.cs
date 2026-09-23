@@ -363,6 +363,16 @@ public class ScreenManager : MonoBehaviour
             return;
         }
 
+        /*
+         * Border và Anchor Gizmo màu cam.
+         */
+        Gizmos.color = new Color(
+            1f,
+            0.5f,
+            0f,
+            1f
+        );
+
         DrawRectangle(
             lastValidCenter,
             PlayAreaWidth,
