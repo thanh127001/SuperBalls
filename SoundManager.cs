@@ -325,11 +325,10 @@ public class SoundManager : MonoBehaviour
             return;
         }
 
-        PlayBackgroundMusic();
-
         /*
-         * Đồng bộ trạng thái ban đầu,
-         * nhưng không phát SFX trạng thái.
+         * Đồng bộ trạng thái ban đầu.
+         * Background music chỉ bắt đầu
+         * khi GameState là Ready.
          */
         if (gameManager != null)
         {
@@ -782,21 +781,11 @@ public class SoundManager : MonoBehaviour
                 CancelPendingGameplaySounds();
 
                 /*
-                 * Khi quay về Main Menu,
-                 * GameManager chuyển:
-                 *
-                 * Initializing -> Ready
-                 *
-                 * nên không cần event riêng
-                 * OnBackToMainMenu.
-                 *
-                 * Không restart khi đồng bộ
-                 * trạng thái ban đầu trong Start().
+                 * Mỗi lần GameState trở thành Ready,
+                 * background music bắt đầu lại từ đầu.
+                 * AudioSource được cấu hình loop = true.
                  */
-                if (playStateSound)
-                {
-                    RestartBackgroundMusic();
-                }
+                RestartBackgroundMusic();
 
                 break;
 
