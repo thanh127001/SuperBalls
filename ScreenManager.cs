@@ -37,6 +37,16 @@ public class ScreenManager : MonoBehaviour
     [SerializeField]
     private Camera mainCamera;
 
+#if UNITY_EDITOR
+
+    [Header("Editor Visualization")]
+    [SerializeField]
+    private bool showLayoutGizmos;
+
+    private const float AnchorGizmoRadius = 0.12f;
+
+#endif
+
 
     /*
      * ========================================
@@ -329,6 +339,105 @@ public class ScreenManager : MonoBehaviour
         FindReferences();
         InitializeAnchors();
         UpdateLayout();
+    }
+
+
+    private void OnDrawGizmos()
+    {
+        if (!showLayoutGizmos)
+        {
+            return;
+        }
+
+        /*
+         * UpdateLayout() dùng trực tiếp các const cấu hình trong code.
+         * Vì ScreenManager có ExecuteAlways, sau khi Unity compile lại
+         * các thay đổi kích thước sẽ được phản ánh ngay trong Editor.
+         */
+        FindReferences();
+        InitializeAnchors();
+        UpdateLayout();
+
+        if (!hasValidLayout)
+        {
+            return;
+        }
+
+        DrawRectangle(
+            lastValidCenter,
+            PlayAreaWidth,
+            PlayAreaHeight
+        );
+
+        DrawRectangle(
+            lastValidScreenCenter,
+            lastValidScreenWidth,
+            lastValidScreenHeight
+        );
+
+        DrawAnchorGizmo(topAnchor);
+        DrawAnchorGizmo(bottomAnchor);
+        DrawAnchorGizmo(leftAnchor);
+        DrawAnchorGizmo(rightAnchor);
+
+        DrawAnchorGizmo(screenTopAnchor);
+        DrawAnchorGizmo(screenBottomAnchor);
+        DrawAnchorGizmo(screenLeftAnchor);
+        DrawAnchorGizmo(screenRightAnchor);
+    }
+
+
+    private static void DrawRectangle(
+        Vector2 center,
+        float width,
+        float height)
+    {
+        float halfWidth = width * 0.5f;
+        float halfHeight = height * 0.5f;
+
+        Vector3 topLeft = new Vector3(
+            center.x - halfWidth,
+            center.y + halfHeight,
+            0f
+        );
+
+        Vector3 topRight = new Vector3(
+            center.x + halfWidth,
+            center.y + halfHeight,
+            0f
+        );
+
+        Vector3 bottomRight = new Vector3(
+            center.x + halfWidth,
+            center.y - halfHeight,
+            0f
+        );
+
+        Vector3 bottomLeft = new Vector3(
+            center.x - halfWidth,
+            center.y - halfHeight,
+            0f
+        );
+
+        Gizmos.DrawLine(topLeft, topRight);
+        Gizmos.DrawLine(topRight, bottomRight);
+        Gizmos.DrawLine(bottomRight, bottomLeft);
+        Gizmos.DrawLine(bottomLeft, topLeft);
+    }
+
+
+    private static void DrawAnchorGizmo(
+        Transform anchor)
+    {
+        if (anchor == null)
+        {
+            return;
+        }
+
+        Gizmos.DrawWireSphere(
+            anchor.position,
+            AnchorGizmoRadius
+        );
     }
 
 #endif
