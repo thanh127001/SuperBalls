@@ -30,6 +30,8 @@ public class UpdateManager : MonoBehaviour
     [SerializeField]
     private bool hasUpdate = false;
 
+    private bool hasCheckedForUpdate;
+
 
     /*
      * ========================================
@@ -121,7 +123,18 @@ public class UpdateManager : MonoBehaviour
 
     private void CheckForUpdate()
     {
+        if (hasCheckedForUpdate)
+        {
+            return;
+        }
+
+        hasCheckedForUpdate = true;
+
         /*
+         * Chỉ kiểm tra update một lần trong
+         * vòng đời hiện tại của ứng dụng:
+         * lần đầu tiên game vào Ready.
+         *
          * TODO:
          * Sau này thay bằng logic kiểm tra
          * update thật.
