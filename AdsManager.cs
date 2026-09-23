@@ -96,8 +96,6 @@ public class AdsManager : MonoBehaviour
 
         Instance = this;
 
-        DontDestroyOnLoad(gameObject);
-
         HideAdsPanel();
     }
 
