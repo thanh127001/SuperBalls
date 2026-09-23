@@ -28,6 +28,8 @@ public class GoTextController : MonoBehaviour
 
     private const string GoMessage = "GO!";
 
+    private const float IntroAnimationDelay = 0.5f;
+
     private const float GoAnimationDelay = 0.5f;
     private const float GoVisibleDuration = 1.5f;
 
@@ -285,6 +287,7 @@ public class GoTextController : MonoBehaviour
         // intro được giữ vô thời hạn cho đến khi có message mới.
         ShowText(
             config.IntroText,
+            IntroAnimationDelay,
             requirePlayerInteraction: false
         );
     }
