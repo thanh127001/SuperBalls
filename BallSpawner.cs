@@ -160,6 +160,15 @@ public class BallSpawner : MonoBehaviour
 
     /*
      * ========================================
+     * EVENTS
+     * ========================================
+     */
+
+    public event Action OnAntiStuck;
+
+
+    /*
+     * ========================================
      * PUBLIC PROPERTIES
      * ========================================
      */
@@ -865,6 +874,8 @@ public class BallSpawner : MonoBehaviour
         {
             return false;
         }
+
+        OnAntiStuck?.Invoke();
 
         for (int i = 0;
              i < antiStuckBounceBalls.Count;

@@ -32,6 +32,9 @@ public class SoundManager : MonoBehaviour
     [SerializeField]
     private ScoreController scoreController;
 
+    [SerializeField]
+    private BallSpawner ballSpawner;
+
 
     /*
      * ========================================
@@ -196,6 +199,23 @@ public class SoundManager : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)]
     private float gameOverSoundVolume =
+        1f;
+
+
+    /*
+     * ========================================
+     * ANTI-STUCK SOUND
+     * ========================================
+     */
+
+    [Header("Anti-Stuck Sound")]
+
+    [SerializeField]
+    private AudioClip antiStuckSound;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float antiStuckSoundVolume =
         1f;
 
 
@@ -421,6 +441,11 @@ public class SoundManager : MonoBehaviour
                 gameOverSoundVolume
             );
 
+        antiStuckSoundVolume =
+            Mathf.Clamp01(
+                antiStuckSoundVolume
+            );
+
         buttonClickSoundVolume =
             Mathf.Clamp01(
                 buttonClickSoundVolume
@@ -467,6 +492,12 @@ public class SoundManager : MonoBehaviour
             scoreController =
                 FindFirstObjectByType<ScoreController>();
         }
+
+        if (ballSpawner == null)
+        {
+            ballSpawner =
+                FindFirstObjectByType<BallSpawner>();
+        }
     }
 
 
@@ -491,6 +522,19 @@ public class SoundManager : MonoBehaviour
 
         gameManager.OnGameStateChanged +=
             HandleGameStateChanged;
+
+
+        /*
+         * Anti-Stuck
+         */
+        if (ballSpawner != null)
+        {
+            ballSpawner.OnAntiStuck -=
+                HandleAntiStuck;
+
+            ballSpawner.OnAntiStuck +=
+                HandleAntiStuck;
+        }
 
 
         /*
@@ -532,6 +576,12 @@ public class SoundManager : MonoBehaviour
 
     private void UnsubscribeEvents()
     {
+        if (ballSpawner != null)
+        {
+            ballSpawner.OnAntiStuck -=
+                HandleAntiStuck;
+        }
+
         Ball.OnCollisionSoundRequested -=
             HandleBallCollisionSoundRequested;
 
@@ -549,6 +599,18 @@ public class SoundManager : MonoBehaviour
             scoreController.OnComboCompleted -=
                 HandleComboCompleted;
         }
+    }
+
+
+    /*
+     * ========================================
+     * ANTI-STUCK EVENT
+     * ========================================
+     */
+
+    private void HandleAntiStuck()
+    {
+        PlayAntiStuckSound();
     }
 
 
@@ -1257,6 +1319,21 @@ public class SoundManager : MonoBehaviour
         PlaySound(
             gameOverSound,
             gameOverSoundVolume
+        );
+    }
+
+
+    /*
+     * ========================================
+     * ANTI-STUCK
+     * ========================================
+     */
+
+    private void PlayAntiStuckSound()
+    {
+        PlaySound(
+            antiStuckSound,
+            antiStuckSoundVolume
         );
     }
 
