@@ -114,18 +114,19 @@ public class BallSpawner : MonoBehaviour
      * ========================================
      */
 
-    private const string SelectableBallLayerName =
-        "Ball";
+    private const int MinimumValidGroupCount = 3;
 
-    private int selectableBallLayer = -1;
+    private readonly Dictionary<BallType, int>
+        antiStuckTypeCounts =
+            new();
 
-    private ContactFilter2D antiStuckContactFilter;
+    private readonly List<BallType>
+        antiStuckLowestTypes =
+            new();
 
-    private readonly RaycastHit2D[] antiStuckRaycastResults =
-        new RaycastHit2D[64];
-
-    private readonly List<Ball> antiStuckCandidates =
-        new(64);
+    private readonly List<Ball>
+        antiStuckBounceBalls =
+            new(64);
 
 
     /*
@@ -373,10 +374,7 @@ public class BallSpawner : MonoBehaviour
                     phase3SpawnInterval
                 )
             );
-
-
-        InitializeAntiStuckFilter();
-    }
+}
 
 
     /*
@@ -731,398 +729,164 @@ public class BallSpawner : MonoBehaviour
      * ========================================
      */
 
-    private void InitializeAntiStuckFilter()
-    {
-        selectableBallLayer =
-            LayerMask.NameToLayer(
-                SelectableBallLayerName
-            );
-
-
-        int layerMask =
-            selectableBallLayer >= 0
-                ? 1 << selectableBallLayer
-                : 0;
-
-
-        antiStuckContactFilter =
-            new ContactFilter2D
-            {
-                useLayerMask = true,
-                layerMask = layerMask,
-                useTriggers = true
-            };
-    }
-
-
     private bool ProcessAntiStuckBeforeSpawn()
     {
-        /*
-         * Không cần kiểm tra State riêng ở đây.
-         *
-         * ProcessAntiStuckBeforeSpawn chỉ được
-         * gọi bởi SpawnRoutine, mà SpawnRoutine
-         * chỉ chạy khi CanSpawnBalls() == true.
-         */
         if (gameManager == null ||
             !isPlayable ||
-            currentPhase != GamePhase.Phase3 ||
-            selectableBallLayer < 0)
+            currentPhase != GamePhase.Phase3)
         {
             return false;
         }
-
 
         gameManager.RemoveNullBalls();
-
-
-        if (HasPotentialGroupInternal())
-        {
-            return false;
-        }
-
-
-        antiStuckCandidates.Clear();
-
-
-        float lowestY =
-            float.PositiveInfinity;
-
 
         IReadOnlyList<Ball> balls =
             gameManager.Balls;
 
+        int validGroupCount =
+            BallGroupFinder.GetValidGroupCapacity(
+                balls,
+                MinimumValidGroupCount
+            );
 
-        for (int i = 0;
-             i < balls.Count;
-             i++)
-        {
-            Ball candidate =
-                balls[i];
-
-
-            if (!CanBallParticipateInAntiStuck(
-                    candidate))
-            {
-                continue;
-            }
-
-
-            float y =
-                candidate.transform.position.y;
-
-
-            if (y < lowestY)
-            {
-                lowestY = y;
-            }
-        }
-
-
-        if (float.IsPositiveInfinity(
-                lowestY))
+        if (validGroupCount >=
+            MinimumValidGroupCount)
         {
             return false;
         }
 
-
-        const float LowestYTolerance =
-            0.05f;
-
+        antiStuckTypeCounts.Clear();
+        antiStuckLowestTypes.Clear();
+        antiStuckBounceBalls.Clear();
 
         for (int i = 0;
              i < balls.Count;
              i++)
         {
-            Ball candidate =
+            Ball ball =
                 balls[i];
 
-
             if (!CanBallParticipateInAntiStuck(
-                    candidate))
+                    ball))
             {
                 continue;
             }
 
-
-            float y =
-                candidate.transform.position.y;
-
-
-            if (Mathf.Abs(
-                    y - lowestY) <=
-                LowestYTolerance)
+            if (antiStuckTypeCounts.TryGetValue(
+                    ball.BallType,
+                    out int count))
             {
-                antiStuckCandidates.Add(
-                    candidate
+                antiStuckTypeCounts[
+                    ball.BallType
+                ] = count + 1;
+            }
+            else
+            {
+                antiStuckTypeCounts.Add(
+                    ball.BallType,
+                    1
                 );
             }
         }
 
-
-        if (antiStuckCandidates.Count == 0)
+        if (antiStuckTypeCounts.Count == 0)
         {
             return false;
         }
 
+        int minimumCount =
+            int.MaxValue;
 
-        int randomIndex =
-            UnityEngine.Random.Range(
-                0,
-                antiStuckCandidates.Count
-            );
+        foreach (KeyValuePair<BallType, int> pair
+                 in antiStuckTypeCounts)
+        {
+            if (pair.Value < minimumCount)
+            {
+                minimumCount = pair.Value;
+                antiStuckLowestTypes.Clear();
+                antiStuckLowestTypes.Add(
+                    pair.Key
+                );
+            }
+            else if (pair.Value == minimumCount)
+            {
+                antiStuckLowestTypes.Add(
+                    pair.Key
+                );
+            }
+        }
 
+        if (antiStuckLowestTypes.Count == 0)
+        {
+            return false;
+        }
 
-        Ball selectedBall =
-            antiStuckCandidates[
-                randomIndex
+        BallType selectedType =
+            antiStuckLowestTypes[
+                UnityEngine.Random.Range(
+                    0,
+                    antiStuckLowestTypes.Count
+                )
             ];
 
+        for (int i = 0;
+             i < balls.Count;
+             i++)
+        {
+            Ball ball =
+                balls[i];
 
-        antiStuckCandidates.Clear();
+            if (CanBallParticipateInAntiStuck(
+                    ball) &&
+                ball.BallType == selectedType)
+            {
+                antiStuckBounceBalls.Add(
+                    ball
+                );
+            }
+        }
 
-
-        if (selectedBall == null)
+        if (antiStuckBounceBalls.Count == 0)
         {
             return false;
         }
 
+        for (int i = 0;
+             i < antiStuckBounceBalls.Count;
+             i++)
+        {
+            Ball ball =
+                antiStuckBounceBalls[i];
 
-        /*
-         * Ball rời gameplay ngay.
-         */
-        gameManager.UnregisterBall(
-            selectedBall
-        );
+            if (ball == null)
+            {
+                continue;
+            }
 
+            gameManager.UnregisterBall(
+                ball
+            );
 
-        /*
-         * Ball tự quản lý toàn bộ bounce.
-         */
-        selectedBall.BeginBouncing();
+            ball.BeginBouncing();
+        }
 
+        antiStuckBounceBalls.Clear();
 
         return true;
     }
 
 
-    private bool HasPotentialGroupInternal()
-    {
-        if (gameManager == null)
-        {
-            return false;
-        }
-
-
-        IReadOnlyList<Ball> balls =
-            gameManager.Balls;
-
-
-        for (int i = 0;
-             i < balls.Count;
-             i++)
-        {
-            Ball centerBall =
-                balls[i];
-
-
-            if (!CanBallParticipateInAntiStuck(
-                    centerBall))
-            {
-                continue;
-            }
-
-
-            int sameTypeNeighborCount =
-                CountSameTypeVisibleNeighbors(
-                    centerBall
-                );
-
-
-            if (sameTypeNeighborCount >= 2)
-            {
-                return true;
-            }
-        }
-
-
-        return false;
-    }
-
-
-    private int CountSameTypeVisibleNeighbors(
-        Ball candidate)
-    {
-        if (candidate == null)
-        {
-            return 0;
-        }
-
-
-        BallType ballType =
-            candidate.BallType;
-
-
-        int count = 0;
-
-
-        if (IsFirstVisibleBallSameType(
-                candidate,
-                Vector2.left,
-                ballType) &&
-            ++count >= 2)
-        {
-            return count;
-        }
-
-
-        if (IsFirstVisibleBallSameType(
-                candidate,
-                Vector2.right,
-                ballType) &&
-            ++count >= 2)
-        {
-            return count;
-        }
-
-
-        if (IsFirstVisibleBallSameType(
-                candidate,
-                Vector2.up,
-                ballType) &&
-            ++count >= 2)
-        {
-            return count;
-        }
-
-
-        if (IsFirstVisibleBallSameType(
-                candidate,
-                Vector2.down,
-                ballType))
-        {
-            count++;
-        }
-
-
-        return count;
-    }
-
-
-    private bool IsFirstVisibleBallSameType(
-        Ball candidate,
-        Vector2 direction,
-        BallType targetType)
-    {
-        if (candidate == null)
-        {
-            return false;
-        }
-
-
-        int hitCount =
-            Physics2D.Raycast(
-                candidate.transform.position,
-                direction,
-                antiStuckContactFilter,
-                antiStuckRaycastResults,
-                Mathf.Infinity
-            );
-
-
-        if (hitCount <= 0)
-        {
-            return false;
-        }
-
-
-        Ball nearestBall = null;
-
-
-        float nearestDistance =
-            float.PositiveInfinity;
-
-
-        for (int i = 0;
-             i < hitCount;
-             i++)
-        {
-            RaycastHit2D hit =
-                antiStuckRaycastResults[i];
-
-
-            if (hit.collider == null)
-            {
-                continue;
-            }
-
-
-            Ball hitBall =
-                hit.collider
-                    .GetComponentInParent<Ball>();
-
-
-            if (hitBall == null ||
-                hitBall == candidate ||
-                !CanBallParticipateInAntiStuck(
-                    hitBall) ||
-                hit.distance >= nearestDistance)
-            {
-                continue;
-            }
-
-
-            nearestDistance =
-                hit.distance;
-
-            nearestBall =
-                hitBall;
-        }
-
-
-        ClearAntiStuckRaycastBuffer(
-            hitCount
-        );
-
-
-        return
-            nearestBall != null &&
-            nearestBall.BallType ==
-                targetType;
-    }
-
-
-    private bool CanBallParticipateInAntiStuck(
+    private static bool CanBallParticipateInAntiStuck(
         Ball ball)
     {
         return
             ball != null &&
+            ball.IsSelectable &&
             !ball.IsBouncing &&
-            !ball.IsDestroyRequested &&
-            ball.HasEnteredPlayArea &&
-            ball.gameObject.layer ==
-                selectableBallLayer;
+            !ball.IsDestroyRequested;
     }
 
 
-    private void ClearAntiStuckRaycastBuffer(
-        int hitCount)
-    {
-        int clearCount =
-            Mathf.Min(
-                hitCount,
-                antiStuckRaycastResults.Length
-            );
-
-
-        for (int i = 0;
-             i < clearCount;
-             i++)
-        {
-            antiStuckRaycastResults[i] =
-                default;
-        }
-    }
 
 
     /*

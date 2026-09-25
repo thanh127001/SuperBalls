@@ -37,12 +37,6 @@ public class BallController : MonoBehaviour
 
     private const string
         SelectableBallLayerName = "Ball";
-
-
-
-    private float SelectionRadius =        1.2f;
-
-
     /*
      * ========================================
      * BOUNCE
@@ -103,32 +97,6 @@ public class BallController : MonoBehaviour
     private readonly List<Ball>
         connectedBalls =
             new(16);
-
-
-    private readonly HashSet<Ball>
-        connectedBallSet =
-            new();
-
-
-    /*
-     * Buffer riêng cho kiểm tra
-     * available group.
-     */
-    private readonly List<Collider2D>
-        hintOverlapResults =
-            new(32);
-
-
-    private readonly List<Ball>
-        hintGroup =
-            new(16);
-
-
-    private readonly HashSet<Ball>
-        hintBallSet =
-            new();
-
-
     /*
      * Buffer dùng cho Combo.
      */
@@ -737,86 +705,33 @@ public class BallController : MonoBehaviour
             return;
         }
 
+        gameManager.RemoveNullBalls();
 
-        gameManager?.RemoveNullBalls();
-
-
-        if (centerBall == null)
-        {
-            return;
-        }
-
-
-
-        if (!CanBallParticipateInSelection(
-                centerBall))
+        if (!BallGroupFinder.TryGetValidGroup(
+                centerBall,
+                gameManager.Balls,
+                connectedBalls))
         {
             HandleInvalidSelection();
-
             return;
         }
-
-
-        BuildBallGroupInsideCircle(
-            centerBall,
-            connectedBalls,
-            overlapResults,
-            connectedBallSet
-        );
-
-
-        if (connectedBalls.Count < 3)
-        {
-            HandleInvalidSelection();
-
-            return;
-        }
-
-
-
-        RemoveInvalidConnectedBalls(
-            centerBall.transform.position,
-            centerBall.BallType
-        );
-
-
-        if (!connectedBallSet.Contains(
-                centerBall) ||
-            connectedBalls.Count < 3)
-        {
-            HandleInvalidSelection();
-
-            return;
-        }
-
 
         if (!isPlayable)
         {
             ClearSelectionCollections();
-
             return;
         }
-
 
         int selectedBallCount =
             connectedBalls.Count;
 
-
         BallType selectedBallType =
             centerBall.BallType;
-
-
-        /*
-         * ========================================
-         * BOUNCE
-         * ========================================
-         */
 
         BounceBalls(
             connectedBalls,
             0f
         );
-
 
         if (isPlayable &&
             scoreController != null)
@@ -826,7 +741,6 @@ public class BallController : MonoBehaviour
                 selectedBallCount
             );
         }
-
 
         ClearSelectionCollections();
     }
@@ -844,227 +758,6 @@ public class BallController : MonoBehaviour
 
     /*
      * ========================================
-     * BUILD GROUP
-     * ========================================
-     */
-
-    private void BuildBallGroupInsideCircle(
-        Ball centerBall,
-        List<Ball> targetGroup,
-        List<Collider2D> targetOverlapResults,
-        HashSet<Ball> targetSet)
-    {
-        targetGroup.Clear();
-
-        targetOverlapResults.Clear();
-
-        targetSet.Clear();
-
-
-        if (centerBall == null)
-        {
-            return;
-        }
-
-
-        Vector2 circleCenter =
-            centerBall.transform.position;
-
-
-        Physics2D.OverlapCircle(
-            circleCenter,
-            SelectionRadius,
-            selectionContactFilter,
-            targetOverlapResults
-        );
-
-
-        BallType targetType =
-            centerBall.BallType;
-
-
-        for (int i = 0;
-             i < targetOverlapResults.Count;
-             i++)
-        {
-            Ball candidateBall =
-                GetBallFromCollider(
-                    targetOverlapResults[i]
-                );
-
-
-            if (candidateBall == null)
-            {
-                continue;
-            }
-
-
-            if (!targetSet.Add(
-                    candidateBall))
-            {
-                continue;
-            }
-
-
-            if (!CanBallParticipateInSelection(
-                    candidateBall))
-            {
-                targetSet.Remove(
-                    candidateBall
-                );
-
-                continue;
-            }
-
-
-            if (candidateBall.BallType !=
-                targetType)
-            {
-                targetSet.Remove(
-                    candidateBall
-                );
-
-                continue;
-            }
-
-
-            if (!IsBallCenterInsideSelectionCircle(
-                    candidateBall,
-                    circleCenter))
-            {
-                targetSet.Remove(
-                    candidateBall
-                );
-
-                continue;
-            }
-
-
-            targetGroup.Add(
-                candidateBall
-            );
-        }
-    }
-
-
-    /*
-     * ========================================
-     * SELECTION VALIDATION
-     * ========================================
-     */
-
-    private bool CanBallParticipateInSelection(
-        Ball ball)
-    {
-        if (ball == null)
-        {
-            return false;
-        }
-
-
-        if (!IsPlayerBallType(
-                ball.BallType))
-        {
-            return false;
-        }
-
-
-        if (!ball.IsSelectable)
-        {
-            return false;
-        }
-
-
-        if (ball.gameObject.layer !=
-            selectableBallLayer)
-        {
-            return false;
-        }
-
-
-        return
-            gameManager != null &&
-            gameManager.ContainsBall(ball);
-    }
-
-
-    /// <summary>
-    /// Chỉ xét tâm của Ball.
-    ///
-    /// Ball hợp lệ khi tâm của nó nằm trong
-    /// hoặc trên đường tròn logic có tâm tại
-    /// centerBall và bán kính SelectionRadius.
-    /// </summary>
-    private bool IsBallCenterInsideSelectionCircle(
-        Ball ball,
-        Vector2 circleCenter)
-    {
-        if (ball == null)
-        {
-            return false;
-        }
-
-
-        Vector2 difference =
-            (Vector2)ball.transform.position -
-            circleCenter;
-
-
-        float radiusSquared =
-            SelectionRadius *
-            SelectionRadius;
-
-
-        return difference.sqrMagnitude <=
-               radiusSquared;
-    }
-
-
-    private void RemoveInvalidConnectedBalls(
-        Vector2 circleCenter,
-        BallType selectedBallType)
-    {
-        for (int i =
-                 connectedBalls.Count - 1;
-             i >= 0;
-             i--)
-        {
-            Ball ball =
-                connectedBalls[i];
-
-
-            bool valid =
-                CanBallParticipateInSelection(
-                    ball
-                ) &&
-                ball.BallType ==
-                selectedBallType &&
-                IsBallCenterInsideSelectionCircle(
-                    ball,
-                    circleCenter
-                );
-
-
-            if (valid)
-            {
-                continue;
-            }
-
-
-            connectedBallSet.Remove(
-                ball
-            );
-
-
-            connectedBalls.RemoveAt(
-                i
-            );
-        }
-    }
-
-
-    /*
-     * ========================================
      * AVAILABLE GROUP
      * ========================================
      */
@@ -1077,34 +770,12 @@ public class BallController : MonoBehaviour
             return false;
         }
 
+        gameManager.RemoveNullBalls();
 
-        gameManager?.RemoveNullBalls();
-
-
-        for (int i = 0;
-             i < gameManager.Balls.Count;
-             i++)
-        {
-            Ball centerBall =
-                gameManager.Balls[i];
-
-
-            if (!CanBallParticipateInSelection(
-                    centerBall))
-            {
-                continue;
-            }
-
-
-            if (HasValidGroupAtBall(
-                    centerBall))
-            {
-                return true;
-            }
-        }
-
-
-        return false;
+        return BallGroupFinder.GetValidGroupCapacity(
+            gameManager.Balls,
+            1
+        ) >= 1;
     }
 
 
@@ -1114,20 +785,19 @@ public class BallController : MonoBehaviour
         List<BallType> availableTypes =
             new();
 
-
         if (gameManager == null ||
             !isPlayable)
         {
             return availableTypes;
         }
 
-
-        gameManager?.RemoveNullBalls();
-
+        gameManager.RemoveNullBalls();
 
         HashSet<BallType> foundTypes =
             new();
 
+        List<Ball> group =
+            new(5);
 
         for (int i = 0;
              i < gameManager.Balls.Count;
@@ -1136,70 +806,24 @@ public class BallController : MonoBehaviour
             Ball centerBall =
                 gameManager.Balls[i];
 
-
-            if (!CanBallParticipateInSelection(
-                    centerBall))
+            if (!BallGroupFinder.TryGetValidGroup(
+                    centerBall,
+                    gameManager.Balls,
+                    group))
             {
                 continue;
             }
 
-
-            BallType ballType =
-                centerBall.BallType;
-
-
-            if (foundTypes.Contains(
-                    ballType))
+            if (foundTypes.Add(
+                    centerBall.BallType))
             {
-                continue;
+                availableTypes.Add(
+                    centerBall.BallType
+                );
             }
-
-
-            if (!HasValidGroupAtBall(
-                    centerBall))
-            {
-                continue;
-            }
-
-
-            foundTypes.Add(
-                ballType
-            );
-
-
-            availableTypes.Add(
-                ballType
-            );
         }
-
 
         return availableTypes;
-    }
-
-
-    private bool HasValidGroupAtBall(
-        Ball centerBall)
-    {
-        if (!CanBallParticipateInSelection(
-                centerBall))
-        {
-            return false;
-        }
-
-
-        BuildBallGroupInsideCircle(
-            centerBall,
-            hintGroup,
-            hintOverlapResults,
-            hintBallSet
-        );
-
-
-        return
-            hintBallSet.Contains(
-                centerBall
-            ) &&
-            hintGroup.Count >= 3;
     }
 
 
@@ -1501,11 +1125,6 @@ public class BallController : MonoBehaviour
         }
 
         ClearSelectionCollections();
-
-        hintGroup.Clear();
-        hintOverlapResults.Clear();
-        hintBallSet.Clear();
-
         comboBalls.Clear();
     }
 
@@ -1521,8 +1140,6 @@ public class BallController : MonoBehaviour
         connectedBalls.Clear();
 
         overlapResults.Clear();
-
-        connectedBallSet.Clear();
     }
 
 }
