@@ -121,7 +121,7 @@ public class BallSpawner : MonoBehaviour
             new();
 
     private readonly List<BallType>
-        antiStuckLowestTypes =
+        antiStuckHighestTypes =
             new();
 
     private readonly List<Ball>
@@ -767,7 +767,7 @@ public class BallSpawner : MonoBehaviour
             gameManager.Balls;
 
         antiStuckTypeCounts.Clear();
-        antiStuckLowestTypes.Clear();
+        antiStuckHighestTypes.Clear();
         antiStuckBounceBalls.Clear();
 
         for (int i = 0;
@@ -805,42 +805,42 @@ public class BallSpawner : MonoBehaviour
             return false;
         }
 
-        int minimumCount =
-            int.MaxValue;
+        int maximumTypeCount =
+            int.MinValue;
 
         foreach (KeyValuePair<BallType, int> pair
                  in antiStuckTypeCounts)
         {
-            if (pair.Value < minimumCount)
+            if (pair.Value > maximumTypeCount)
             {
-                minimumCount =
+                maximumTypeCount =
                     pair.Value;
 
-                antiStuckLowestTypes.Clear();
+                antiStuckHighestTypes.Clear();
 
-                antiStuckLowestTypes.Add(
+                antiStuckHighestTypes.Add(
                     pair.Key
                 );
             }
             else if (pair.Value ==
-                     minimumCount)
+                     maximumTypeCount)
             {
-                antiStuckLowestTypes.Add(
+                antiStuckHighestTypes.Add(
                     pair.Key
                 );
             }
         }
 
-        if (antiStuckLowestTypes.Count == 0)
+        if (antiStuckHighestTypes.Count == 0)
         {
             return false;
         }
 
         BallType selectedType =
-            antiStuckLowestTypes[
+            antiStuckHighestTypes[
                 UnityEngine.Random.Range(
                     0,
-                    antiStuckLowestTypes.Count
+                    antiStuckHighestTypes.Count
                 )
             ];
 
