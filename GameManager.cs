@@ -36,7 +36,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall
             },
             comboDecayInterval: 1f,
-            introText: "READY?"
+            introText: "NEW COLOR!"
         ),
         // Level 3
         new LevelConfig(
@@ -50,7 +50,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall
             },
             comboDecayInterval: 1f,
-            introText: "READY?"
+            introText: "COLORFUL!"
         ),
         // Level 4
         new LevelConfig(
@@ -75,7 +75,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall,
             },
             comboDecayInterval: 0.8f,
-            introText: "READY?"
+            introText: "KEEP GOING!"
         ),
         // Level 6
         new LevelConfig(
@@ -89,7 +89,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall,
             },
             comboDecayInterval: 0.8f,
-            introText: "READY?"
+            introText: "STAY SHARP!"
         ),
         // Level 7
         new LevelConfig(
@@ -114,7 +114,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall,
             },
             comboDecayInterval: 0.6f,
-            introText: "READY?"
+            introText: "ALMOST THERE!"
         ),
         // Level 9
         new LevelConfig(
