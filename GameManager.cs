@@ -101,7 +101,7 @@ public class GameManager : MonoBehaviour
                 BallType.BlueBall,
             },
             comboDecayInterval: 0.6f,
-            introText: "MAX SPEED!"
+            introText: "SPEED UP!"
         ),
         // Level 8
         new LevelConfig(
@@ -128,7 +128,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall,
             },
             comboDecayInterval: 0.6f,
-            introText: "FINAL LEVEL!"
+            introText: "LAST ONE!"
         ),
     };
 
