@@ -3,8 +3,11 @@ using UnityEngine;
 
 public static class BallGroupFinder
 {
-    private const string SelectableBallLayerName = "Ball";
-    private const int MinimumGroupSize = 3;
+    private const string SelectableBallLayerName =
+        "Ball";
+
+    private const int MinimumGroupSize =
+        3;
 
     private static readonly Vector2[] Directions =
     {
@@ -14,160 +17,20 @@ public static class BallGroupFinder
         Vector2.down
     };
 
-    private static readonly RaycastHit2D[] RaycastResults =
-        new RaycastHit2D[16];
+    private static readonly RaycastHit2D[]
+        RaycastResults =
+            new RaycastHit2D[16];
 
+
+    /*
+     * ========================================
+     * FIND VALID GROUP
+     * ========================================
+     */
 
     public static bool TryGetValidGroup(
         Ball centerBall,
         IReadOnlyList<Ball> balls,
-        List<Ball> targetGroup)
-    {
-        return TryGetValidGroup(
-            centerBall,
-            balls,
-            null,
-            targetGroup
-        );
-    }
-
-
-    public static bool TryFindValidGroup(
-        IReadOnlyList<Ball> balls,
-        List<Ball> targetGroup)
-    {
-        targetGroup?.Clear();
-
-        if (balls == null ||
-            targetGroup == null)
-        {
-            return false;
-        }
-
-        for (int i = 0;
-             i < balls.Count;
-             i++)
-        {
-            if (TryGetValidGroup(
-                    balls[i],
-                    balls,
-                    null,
-                    targetGroup))
-            {
-                return true;
-            }
-        }
-
-        targetGroup.Clear();
-        return false;
-    }
-
-
-    public static int GetValidGroupCapacity(
-        IReadOnlyList<Ball> balls,
-        int maximumCount = int.MaxValue)
-    {
-        if (balls == null ||
-            balls.Count == 0 ||
-            maximumCount <= 0)
-        {
-            return 0;
-        }
-
-        HashSet<Ball> excludedBalls =
-            new();
-
-        List<Ball> groupBuffer =
-            new(5);
-
-        return FindMaximumGroupCount(
-            balls,
-            excludedBalls,
-            groupBuffer,
-            maximumCount
-        );
-    }
-
-
-    private static int FindMaximumGroupCount(
-        IReadOnlyList<Ball> balls,
-        HashSet<Ball> excludedBalls,
-        List<Ball> groupBuffer,
-        int remainingLimit)
-    {
-        if (remainingLimit <= 0)
-        {
-            return 0;
-        }
-
-        int bestCount = 0;
-
-        for (int i = 0;
-             i < balls.Count;
-             i++)
-        {
-            Ball centerBall =
-                balls[i];
-
-            if (!TryGetValidGroup(
-                    centerBall,
-                    balls,
-                    excludedBalls,
-                    groupBuffer))
-            {
-                continue;
-            }
-
-            Ball[] selectedGroup =
-                groupBuffer.ToArray();
-
-            for (int j = 0;
-                 j < selectedGroup.Length;
-                 j++)
-            {
-                excludedBalls.Add(
-                    selectedGroup[j]
-                );
-            }
-
-            int count =
-                1 +
-                FindMaximumGroupCount(
-                    balls,
-                    excludedBalls,
-                    groupBuffer,
-                    remainingLimit - 1
-                );
-
-            for (int j = 0;
-                 j < selectedGroup.Length;
-                 j++)
-            {
-                excludedBalls.Remove(
-                    selectedGroup[j]
-                );
-            }
-
-            if (count > bestCount)
-            {
-                bestCount = count;
-            }
-
-            if (bestCount >= remainingLimit)
-            {
-                break;
-            }
-        }
-
-        groupBuffer.Clear();
-        return bestCount;
-    }
-
-
-    private static bool TryGetValidGroup(
-        Ball centerBall,
-        IReadOnlyList<Ball> balls,
-        HashSet<Ball> excludedBalls,
         List<Ball> targetGroup)
     {
         targetGroup?.Clear();
@@ -175,8 +38,7 @@ public static class BallGroupFinder
         if (targetGroup == null ||
             !CanParticipate(
                 centerBall,
-                balls,
-                excludedBalls))
+                balls))
         {
             return false;
         }
@@ -208,12 +70,12 @@ public static class BallGroupFinder
                     centerBall,
                     Directions[i],
                     searchDistance,
-                    balls,
-                    excludedBalls
+                    balls
                 );
 
             if (neighbor == null ||
-                neighbor.BallType != targetType)
+                neighbor.BallType !=
+                targetType)
             {
                 continue;
             }
@@ -230,16 +92,22 @@ public static class BallGroupFinder
         }
 
         targetGroup.Clear();
+
         return false;
     }
 
+
+    /*
+     * ========================================
+     * NEIGHBOR
+     * ========================================
+     */
 
     private static Ball FindNearestBall(
         Ball centerBall,
         Vector2 direction,
         float distance,
-        IReadOnlyList<Ball> balls,
-        HashSet<Ball> excludedBalls)
+        IReadOnlyList<Ball> balls)
     {
         int layer =
             LayerMask.NameToLayer(
@@ -269,6 +137,7 @@ public static class BallGroupFinder
             );
 
         Ball nearestBall = null;
+
         float nearestDistance =
             float.PositiveInfinity;
 
@@ -292,15 +161,18 @@ public static class BallGroupFinder
             if (hitBall == centerBall ||
                 !CanParticipate(
                     hitBall,
-                    balls,
-                    excludedBalls) ||
-                hit.distance >= nearestDistance)
+                    balls) ||
+                hit.distance >=
+                    nearestDistance)
             {
                 continue;
             }
 
-            nearestBall = hitBall;
-            nearestDistance = hit.distance;
+            nearestBall =
+                hitBall;
+
+            nearestDistance =
+                hit.distance;
         }
 
         ClearRaycastResults(
@@ -311,17 +183,20 @@ public static class BallGroupFinder
     }
 
 
+    /*
+     * ========================================
+     * VALIDATION
+     * ========================================
+     */
+
     private static bool CanParticipate(
         Ball ball,
-        IReadOnlyList<Ball> balls,
-        HashSet<Ball> excludedBalls)
+        IReadOnlyList<Ball> balls)
     {
         if (ball == null ||
             !ball.IsSelectable ||
             ball.IsBouncing ||
-            ball.IsDestroyRequested ||
-            excludedBalls != null &&
-            excludedBalls.Contains(ball))
+            ball.IsDestroyRequested)
         {
             return false;
         }
@@ -355,6 +230,12 @@ public static class BallGroupFinder
         return false;
     }
 
+
+    /*
+     * ========================================
+     * COLLIDER
+     * ========================================
+     */
 
     private static float GetWorldDiameter(
         Ball ball)

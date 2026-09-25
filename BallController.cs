@@ -772,10 +772,23 @@ public class BallController : MonoBehaviour
 
         gameManager.RemoveNullBalls();
 
-        return BallGroupFinder.GetValidGroupCapacity(
-            gameManager.Balls,
-            1
-        ) >= 1;
+        List<Ball> group =
+            new(5);
+
+        for (int i = 0;
+             i < gameManager.Balls.Count;
+             i++)
+        {
+            if (BallGroupFinder.TryGetValidGroup(
+                    gameManager.Balls[i],
+                    gameManager.Balls,
+                    group))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

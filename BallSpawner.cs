@@ -128,6 +128,18 @@ public class BallSpawner : MonoBehaviour
         antiStuckBounceBalls =
             new(64);
 
+    private readonly List<Ball>
+        antiStuckGroup =
+            new(5);
+
+    private readonly List<Ball>
+        antiStuckRemainingBalls =
+            new(64);
+
+    private readonly List<Ball>
+        antiStuckBestRemainingBalls =
+            new(64);
+
 
     /*
      * ========================================
@@ -740,12 +752,8 @@ public class BallSpawner : MonoBehaviour
 
         gameManager.RemoveNullBalls();
 
-        IReadOnlyList<Ball> balls =
-            gameManager.Balls;
-
         int validGroupCount =
-            BallGroupFinder.GetValidGroupCapacity(
-                balls,
+            GetValidGroupCount(
                 MinimumValidGroupCount
             );
 
@@ -754,6 +762,9 @@ public class BallSpawner : MonoBehaviour
         {
             return false;
         }
+
+        IReadOnlyList<Ball> balls =
+            gameManager.Balls;
 
         antiStuckTypeCounts.Clear();
         antiStuckLowestTypes.Clear();
@@ -802,13 +813,17 @@ public class BallSpawner : MonoBehaviour
         {
             if (pair.Value < minimumCount)
             {
-                minimumCount = pair.Value;
+                minimumCount =
+                    pair.Value;
+
                 antiStuckLowestTypes.Clear();
+
                 antiStuckLowestTypes.Add(
                     pair.Key
                 );
             }
-            else if (pair.Value == minimumCount)
+            else if (pair.Value ==
+                     minimumCount)
             {
                 antiStuckLowestTypes.Add(
                     pair.Key
@@ -873,6 +888,120 @@ public class BallSpawner : MonoBehaviour
         antiStuckBounceBalls.Clear();
 
         return true;
+    }
+
+
+    /*
+     * BallSpawner tự chịu trách nhiệm xác định
+     * bàn chơi có tối đa bao nhiêu nhóm hợp lệ.
+     *
+     * BallGroupFinder chỉ được hỏi:
+     * "Center Ball này có tạo thành nhóm hợp lệ không?"
+     */
+    private int GetValidGroupCount(
+        int maximumCount)
+    {
+        antiStuckRemainingBalls.Clear();
+
+        IReadOnlyList<Ball> balls =
+            gameManager.Balls;
+
+        for (int i = 0;
+             i < balls.Count;
+             i++)
+        {
+            Ball ball =
+                balls[i];
+
+            if (CanBallParticipateInAntiStuck(
+                    ball))
+            {
+                antiStuckRemainingBalls.Add(
+                    ball
+                );
+            }
+        }
+
+        return FindMaximumValidGroupCount(
+            antiStuckRemainingBalls,
+            maximumCount
+        );
+    }
+
+
+    private int FindMaximumValidGroupCount(
+        List<Ball> remainingBalls,
+        int remainingLimit)
+    {
+        if (remainingLimit <= 0 ||
+            remainingBalls == null ||
+            remainingBalls.Count == 0)
+        {
+            return 0;
+        }
+
+        int bestCount = 0;
+
+        for (int i = 0;
+             i < remainingBalls.Count;
+             i++)
+        {
+            Ball centerBall =
+                remainingBalls[i];
+
+            if (!BallGroupFinder.TryGetValidGroup(
+                    centerBall,
+                    remainingBalls,
+                    antiStuckGroup))
+            {
+                continue;
+            }
+
+            antiStuckBestRemainingBalls.Clear();
+
+            for (int j = 0;
+                 j < remainingBalls.Count;
+                 j++)
+            {
+                Ball ball =
+                    remainingBalls[j];
+
+                if (!antiStuckGroup.Contains(
+                        ball))
+                {
+                    antiStuckBestRemainingBalls.Add(
+                        ball
+                    );
+                }
+            }
+
+            List<Ball> nextBalls =
+                new(
+                    antiStuckBestRemainingBalls
+                );
+
+            int count =
+                1 +
+                FindMaximumValidGroupCount(
+                    nextBalls,
+                    remainingLimit - 1
+                );
+
+            if (count > bestCount)
+            {
+                bestCount =
+                    count;
+            }
+
+            if (bestCount >= remainingLimit)
+            {
+                break;
+            }
+        }
+
+        antiStuckGroup.Clear();
+
+        return bestCount;
     }
 
 
