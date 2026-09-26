@@ -17,9 +17,6 @@ public class AchievementManager : MonoBehaviour
     private GameManager gameManager;
 
     [SerializeField]
-    private GameObject achievementContainer;
-
-    [SerializeField]
     private TMP_Text achievementText;
 
 
@@ -29,9 +26,11 @@ public class AchievementManager : MonoBehaviour
      * ========================================
      */
 
-    private const float ShakeDuration = 0.7f;
-    private const float ShakeAngle = 8f;
-    private const float ShakeFrequency = 5f;
+    private const float ReadyDelay = 1f;
+    private const float AnimationDuration = 0.6f;
+    private const float StartScale = 0.5f;
+    private const float PeakScale = 1.2f;
+    private const float NormalScale = 1f;
 
 
     /*
@@ -57,7 +56,7 @@ public class AchievementManager : MonoBehaviour
 
     private bool hasNewAchievement;
 
-    private Coroutine shakeCoroutine;
+    private Coroutine animationCoroutine;
 
 
     /*
@@ -122,7 +121,7 @@ public class AchievementManager : MonoBehaviour
                 HandleGameStateChanged;
         }
 
-        StopShake();
+        StopAnimation();
     }
 
 
@@ -217,7 +216,7 @@ public class AchievementManager : MonoBehaviour
             return;
         }
 
-        PlayShake();
+        PlayAnimation();
     }
 
 
@@ -245,70 +244,116 @@ public class AchievementManager : MonoBehaviour
      * ========================================
      */
 
-    private void PlayShake()
+    private void PlayAnimation()
     {
-        if (achievementContainer == null)
+        if (achievementText == null)
         {
             return;
         }
 
-        StopShake();
+        StopAnimation();
 
-        shakeCoroutine =
+        animationCoroutine =
             StartCoroutine(
-                ShakeRoutine()
+                AnimationRoutine()
             );
     }
 
 
-    private IEnumerator ShakeRoutine()
+    private IEnumerator AnimationRoutine()
     {
-        Transform containerTransform =
-            achievementContainer.transform;
+        yield return
+            new WaitForSecondsRealtime(
+                ReadyDelay
+            );
 
-        Quaternion originalRotation =
-            containerTransform.localRotation;
+        RectTransform textTransform =
+            achievementText.rectTransform;
+
+        Vector3 originalScale =
+            textTransform.localScale;
+
+        Color originalColor =
+            achievementText.color;
+
+        Color transparentColor =
+            originalColor;
+
+        transparentColor.a = 0f;
+
+        achievementText.color =
+            transparentColor;
+
+        textTransform.localScale =
+            originalScale *
+            StartScale;
 
         float elapsed = 0f;
 
-        while (elapsed < ShakeDuration)
+        while (elapsed < AnimationDuration)
         {
             elapsed +=
                 Time.unscaledDeltaTime;
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / ShakeDuration
+                    elapsed / AnimationDuration
                 );
 
-            float damping =
-                1f - progress;
+            float scale;
 
-            float angle =
-                Mathf.Sin(
-                    progress *
-                    ShakeFrequency *
-                    Mathf.PI *
-                    2f
-                ) *
-                ShakeAngle *
-                damping;
+            if (progress < 0.7f)
+            {
+                float zoomProgress =
+                    progress / 0.7f;
 
-            containerTransform.localRotation =
-                originalRotation *
-                Quaternion.Euler(
+                scale =
+                    Mathf.Lerp(
+                        StartScale,
+                        PeakScale,
+                        zoomProgress
+                    );
+            }
+            else
+            {
+                float settleProgress =
+                    (progress - 0.7f) / 0.3f;
+
+                scale =
+                    Mathf.Lerp(
+                        PeakScale,
+                        NormalScale,
+                        settleProgress
+                    );
+            }
+
+            textTransform.localScale =
+                originalScale *
+                scale;
+
+            Color color =
+                originalColor;
+
+            color.a =
+                Mathf.Lerp(
                     0f,
-                    0f,
-                    angle
+                    originalColor.a,
+                    progress
                 );
+
+            achievementText.color =
+                color;
 
             yield return null;
         }
 
-        containerTransform.localRotation =
-            originalRotation;
+        textTransform.localScale =
+            originalScale;
 
-        shakeCoroutine = null;
+        achievementText.color =
+            originalColor;
+
+        animationCoroutine = null;
 
         hasNewAchievement =
             false;
@@ -317,18 +362,18 @@ public class AchievementManager : MonoBehaviour
     }
 
 
-    private void StopShake()
+    private void StopAnimation()
     {
-        if (shakeCoroutine == null)
+        if (animationCoroutine == null)
         {
             return;
         }
 
         StopCoroutine(
-            shakeCoroutine
+            animationCoroutine
         );
 
-        shakeCoroutine = null;
+        animationCoroutine = null;
     }
 
 
