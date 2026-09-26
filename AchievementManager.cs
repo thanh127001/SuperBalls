@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -18,36 +17,6 @@ public class AchievementManager : MonoBehaviour
 
     [SerializeField]
     private TMP_Text achievementText;
-
-
-    private void HideAchievementText()
-    {
-        if (achievementText == null)
-        {
-            return;
-        }
-
-        Color color =
-            achievementText.color;
-
-        color.a = 0f;
-
-        achievementText.color =
-            color;
-    }
-
-
-    /*
-     * ========================================
-     * ANIMATION
-     * ========================================
-     */
-
-    private const float ReadyDelay = 1f;
-    private const float AnimationDuration = 0.6f;
-    private const float StartScale = 0.5f;
-    private const float PeakScale = 1.2f;
-    private const float NormalScale = 1f;
 
 
     /*
@@ -72,8 +41,6 @@ public class AchievementManager : MonoBehaviour
     private int achievementCount;
 
     private bool hasNewAchievement;
-
-    private Coroutine animationCoroutine;
 
 
     /*
@@ -101,7 +68,6 @@ public class AchievementManager : MonoBehaviour
 
         LoadData();
 
-        UpdateAchievementText();
         HideAchievementText();
     }
 
@@ -138,8 +104,6 @@ public class AchievementManager : MonoBehaviour
             gameManager.OnGameStateChanged -=
                 HandleGameStateChanged;
         }
-
-        StopAnimation();
     }
 
 
@@ -214,8 +178,6 @@ public class AchievementManager : MonoBehaviour
             true;
 
         SaveData();
-
-        UpdateAchievementText();
     }
 
 
@@ -228,14 +190,22 @@ public class AchievementManager : MonoBehaviour
     private void HandleReadyState()
     {
         UpdateAchievementText();
-        HideAchievementText();
 
-        if (!hasNewAchievement)
+        if (achievementCount <= 0)
         {
+            HideAchievementText();
             return;
         }
 
-        PlayAnimation();
+        ShowAchievementText();
+
+        if (hasNewAchievement)
+        {
+            hasNewAchievement =
+                false;
+
+            SaveData();
+        }
     }
 
 
@@ -257,142 +227,29 @@ public class AchievementManager : MonoBehaviour
     }
 
 
-    /*
-     * ========================================
-     * ANIMATION
-     * ========================================
-     */
-
-    private void PlayAnimation()
+    private void ShowAchievementText()
     {
         if (achievementText == null)
         {
             return;
         }
 
-        StopAnimation();
-
-        animationCoroutine =
-            StartCoroutine(
-                AnimationRoutine()
-            );
+        achievementText.gameObject.SetActive(
+            true
+        );
     }
 
 
-    private IEnumerator AnimationRoutine()
+    private void HideAchievementText()
     {
-        yield return
-            new WaitForSecondsRealtime(
-                ReadyDelay
-            );
-
-        RectTransform textTransform =
-            achievementText.rectTransform;
-
-        Vector3 originalScale =
-            textTransform.localScale;
-
-        Color originalColor =
-            achievementText.color;
-
-        Color transparentColor =
-            originalColor;
-
-        transparentColor.a = 0f;
-
-        achievementText.color =
-            transparentColor;
-
-        textTransform.localScale =
-            originalScale *
-            StartScale;
-
-        float elapsed = 0f;
-
-        while (elapsed < AnimationDuration)
-        {
-            elapsed +=
-                Time.unscaledDeltaTime;
-
-            float progress =
-                Mathf.Clamp01(
-                    elapsed / AnimationDuration
-                );
-
-            float scale;
-
-            if (progress < 0.7f)
-            {
-                float zoomProgress =
-                    progress / 0.7f;
-
-                scale =
-                    Mathf.Lerp(
-                        StartScale,
-                        PeakScale,
-                        zoomProgress
-                    );
-            }
-            else
-            {
-                float settleProgress =
-                    (progress - 0.7f) / 0.3f;
-
-                scale =
-                    Mathf.Lerp(
-                        PeakScale,
-                        NormalScale,
-                        settleProgress
-                    );
-            }
-
-            textTransform.localScale =
-                originalScale *
-                scale;
-
-            Color color =
-                originalColor;
-
-            color.a =
-                Mathf.Lerp(
-                    0f,
-                    originalColor.a,
-                    progress
-                );
-
-            achievementText.color =
-                color;
-
-            yield return null;
-        }
-
-        textTransform.localScale =
-            originalScale;
-
-        achievementText.color =
-            originalColor;
-
-        animationCoroutine = null;
-
-        hasNewAchievement =
-            false;
-
-        SaveData();
-    }
-
-
-    private void StopAnimation()
-    {
-        if (animationCoroutine == null)
+        if (achievementText == null)
         {
             return;
         }
 
-        StopCoroutine(
-            animationCoroutine
+        achievementText.gameObject.SetActive(
+            false
         );
-
-        animationCoroutine = null;
     }
 
 
