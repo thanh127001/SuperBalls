@@ -253,6 +253,30 @@ public class AchievementManager : MonoBehaviour
     }
 
 
+#if UNITY_EDITOR
+
+    public void ClearAchievementData()
+    {
+        PlayerPrefs.DeleteKey(
+            AchievementCountKey
+        );
+
+        PlayerPrefs.DeleteKey(
+            HasNewAchievementKey
+        );
+
+        PlayerPrefs.Save();
+
+        achievementCount = 0;
+        hasNewAchievement = false;
+
+        UpdateAchievementText();
+        HideAchievementText();
+    }
+
+#endif
+
+
     /*
      * ========================================
      * SAVE / LOAD
