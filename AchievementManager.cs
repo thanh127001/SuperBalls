@@ -20,6 +20,23 @@ public class AchievementManager : MonoBehaviour
     private TMP_Text achievementText;
 
 
+    private void HideAchievementText()
+    {
+        if (achievementText == null)
+        {
+            return;
+        }
+
+        Color color =
+            achievementText.color;
+
+        color.a = 0f;
+
+        achievementText.color =
+            color;
+    }
+
+
     /*
      * ========================================
      * ANIMATION
@@ -85,6 +102,7 @@ public class AchievementManager : MonoBehaviour
         LoadData();
 
         UpdateAchievementText();
+        HideAchievementText();
     }
 
 
@@ -210,6 +228,7 @@ public class AchievementManager : MonoBehaviour
     private void HandleReadyState()
     {
         UpdateAchievementText();
+        HideAchievementText();
 
         if (!hasNewAchievement)
         {
