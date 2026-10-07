@@ -19,6 +19,20 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
 
     /*
      * ========================================
+     * FIT
+     * ========================================
+     */
+
+    [Header("Fit")]
+
+    [Tooltip(
+        "Giữ nguyên tỷ lệ gốc của Sprite. Khi bật, Sprite sẽ được phóng đủ lớn để phủ kín toàn bộ vùng cần fit.")]
+    [SerializeField]
+    private bool preserveAspectRatio = true;
+
+
+    /*
+     * ========================================
      * EXPANSION
      * ========================================
      */
@@ -57,6 +71,8 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
 
     private float lastExpansionY =
         float.NaN;
+
+    private bool? lastPreserveAspectRatio;
 
     private Vector3 lastLossyScale =
         new(
@@ -319,6 +335,8 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
             Approximately(
                 expansionY,
                 lastExpansionY) &&
+            lastPreserveAspectRatio ==
+                preserveAspectRatio &&
             ApproximatelyVector3(
                 lossyScale,
                 lastLossyScale);
@@ -368,6 +386,9 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
 
         lastExpansionY =
             expansionY;
+
+        lastPreserveAspectRatio =
+            preserveAspectRatio;
 
         lastLossyScale =
             lossyScale;
@@ -424,6 +445,40 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
         float height =
             localVertical.magnitude +
             expansionY;
+
+
+        if (preserveAspectRatio)
+        {
+            Vector2 spriteSize =
+                spriteRenderer.sprite.bounds.size;
+
+
+            if (IsFinitePositive(spriteSize.x) &&
+                IsFinitePositive(spriteSize.y))
+            {
+                float spriteAspect =
+                    spriteSize.x /
+                    spriteSize.y;
+
+                float targetAspect =
+                    width /
+                    height;
+
+
+                if (targetAspect > spriteAspect)
+                {
+                    height =
+                        width /
+                        spriteAspect;
+                }
+                else
+                {
+                    width =
+                        height *
+                        spriteAspect;
+                }
+            }
+        }
 
 
         return
@@ -523,6 +578,9 @@ public class FullScreenSpriteRendererFitter : MonoBehaviour
 
         lastExpansionY =
             float.NaN;
+
+        lastPreserveAspectRatio =
+            null;
 
         lastLossyScale =
             new Vector3(
