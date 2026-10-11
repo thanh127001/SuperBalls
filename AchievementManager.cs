@@ -18,6 +18,9 @@ public class AchievementManager : MonoBehaviour
     [SerializeField]
     private TMP_Text achievementText;
 
+    [SerializeField]
+    private GameObject achievementObject;
+
 
     /*
      * ========================================
@@ -229,27 +232,29 @@ public class AchievementManager : MonoBehaviour
 
     private void ShowAchievementText()
     {
-        if (achievementText == null)
+        if (achievementText != null)
         {
-            return;
+            achievementText.gameObject.SetActive(true);
         }
 
-        achievementText.gameObject.SetActive(
-            true
-        );
+        if (achievementObject != null)
+        {
+            achievementObject.SetActive(true);
+        }
     }
 
 
     private void HideAchievementText()
     {
-        if (achievementText == null)
+        if (achievementText != null)
         {
-            return;
+            achievementText.gameObject.SetActive(false);
         }
 
-        achievementText.gameObject.SetActive(
-            false
-        );
+        if (achievementObject != null)
+        {
+            achievementObject.SetActive(false);
+        }
     }
 
 
