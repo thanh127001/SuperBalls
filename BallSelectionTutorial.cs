@@ -172,10 +172,13 @@ public class BallSelectionTutorial : MonoBehaviour
                 continue;
 
             hintedCenter = candidate;
+            // Parent the hint to the center ball so it follows its movement.
+            // Preserve the prefab's intended world orientation and offset.
             hintInstance = Instantiate(
                 hintPrefab,
                 candidate.transform.position + hintOffset,
-                Quaternion.identity);
+                Quaternion.identity,
+                candidate.transform);
 
             hintBaseScale = hintInstance.transform.localScale;
             pulseElapsed = 0f;
