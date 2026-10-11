@@ -19,6 +19,16 @@ public class BallSelectionTutorial : MonoBehaviour
     private bool completed;
     private bool waitingForPhase2;
 
+    [Header("Dashed Lines")]
+    [SerializeField, Min(0.001f)] private float lineWidth = 0.035f;
+    [SerializeField, Min(0.001f)] private float dashLength = 0.08f;
+    [SerializeField, Min(0f)] private float gapLength = 0.05f;
+    [SerializeField] private Color lineColor = Color.white;
+    [SerializeField] private string sortingLayerName = "Ball";
+    [SerializeField] private int sortingOrder = 32767;
+
+    private Material lineMaterial;
+
     private void Awake()
     {
         FindReferences();
@@ -60,25 +70,26 @@ public class BallSelectionTutorial : MonoBehaviour
         ClearHint();
     }
 
-    private void LateUpdate()
+    private void Update()
     {
-        if (hintInstance == null)
+        if (hintInstance == null || gameManager == null ||
+            gameManager.State != GameState.Playing)
             return;
 
         if (hintedCenter == null ||
-            !hintedCenter.IsSelectable ||
-            hintedCenter.IsBouncing ||
-            hintedCenter.IsDestroyRequested ||
-            gameManager == null ||
-            gameManager.State != GameState.Playing ||
-            gameManager.CurrentLevel != 1)
+            !BallGroupFinder.TryGetValidGroup(
+                hintedCenter, gameManager.Balls, validGroup))
         {
+            // Keep the lines static; remove the entire hint when the group breaks.
+            // The next Phase 2 spawn may create a replacement.
             ClearHint();
-            return;
         }
+    }
 
-        hintInstance.transform.position =
-            hintedCenter.transform.position + hintOffset;
+    private void OnDestroy()
+    {
+        if (lineMaterial != null)
+            Destroy(lineMaterial);
     }
 
     private void FindReferences()
@@ -108,7 +119,8 @@ public class BallSelectionTutorial : MonoBehaviour
             return;
         }
 
-        if (gameManager.State != GameState.Playing)
+        if (gameManager.State != GameState.Playing &&
+            gameManager.State != GameState.Paused)
             ClearHint();
 
         SyncState();
@@ -146,32 +158,115 @@ public class BallSelectionTutorial : MonoBehaviour
             gameManager.CurrentPhase != GamePhase.Phase2)
             return;
 
-        // Re-evaluate the hinted center after each Phase 2 spawn.
-        if (hintedCenter != null &&
-            BallGroupFinder.TryGetValidGroup(
-                hintedCenter, gameManager.Balls, validGroup))
-            return;
+        if (hintInstance != null)
+        {
+            if (hintedCenter == null ||
+                !BallGroupFinder.TryGetValidGroup(
+                    hintedCenter, gameManager.Balls, validGroup))
+                ClearHint();
 
-        ClearHint();
+            // Do not replace a broken hint on this same spawn.
+            return;
+        }
+
+        if (hintPrefab == null)
+            return;
 
         IReadOnlyList<Ball> balls = gameManager.Balls;
         for (int i = 0; i < balls.Count; i++)
         {
             Ball candidate = balls[i];
-            if (BallGroupFinder.TryGetValidGroup(
-                    candidate, balls, validGroup))
+            if (!BallGroupFinder.TryGetValidGroup(candidate, balls, validGroup))
+                continue;
+
+            hintedCenter = candidate;
+            hintInstance = Instantiate(
+                hintPrefab,
+                candidate.transform.position + hintOffset,
+                Quaternion.identity);
+
+            CreateDashedLines();
+            return;
+        }
+    }
+
+    private void CreateDashedLines()
+    {
+        if (hintInstance == null || hintedCenter == null)
+            return;
+
+        List<Vector3> vertices = new(128);
+        List<int> triangles = new(192);
+        float dash = Mathf.Max(0.001f, dashLength);
+        float step = dash + Mathf.Max(0f, gapLength);
+        float halfWidth = Mathf.Max(0.001f, lineWidth) * 0.5f;
+        Vector3 center = hintedCenter.transform.position;
+        Matrix4x4 worldToLocal = hintInstance.transform.worldToLocalMatrix;
+
+        for (int i = 0; i < validGroup.Count; i++)
+        {
+            Ball ball = validGroup[i];
+            if (ball == null || ball == hintedCenter)
+                continue;
+
+            Vector3 delta = ball.transform.position - center;
+            delta.z = 0f;
+            float length = delta.magnitude;
+            if (length <= 0.0001f)
+                continue;
+
+            Vector3 direction = delta / length;
+            Vector3 side = new Vector3(-direction.y, direction.x, 0f) * halfWidth;
+
+            for (float distance = 0f; distance < length; distance += step)
             {
-                hintedCenter = candidate;
-                if (hintPrefab != null)
-                {
-                    hintInstance = Instantiate(
-                        hintPrefab,
-                        hintedCenter.transform.position + hintOffset,
-                        Quaternion.identity);
-                }
-                return;
+                Vector3 p0 = center + direction * distance;
+                Vector3 p1 = center + direction * Mathf.Min(distance + dash, length);
+                int index = vertices.Count;
+                vertices.Add(worldToLocal.MultiplyPoint3x4(p0 - side));
+                vertices.Add(worldToLocal.MultiplyPoint3x4(p0 + side));
+                vertices.Add(worldToLocal.MultiplyPoint3x4(p1 - side));
+                vertices.Add(worldToLocal.MultiplyPoint3x4(p1 + side));
+                triangles.Add(index);
+                triangles.Add(index + 1);
+                triangles.Add(index + 2);
+                triangles.Add(index + 2);
+                triangles.Add(index + 1);
+                triangles.Add(index + 3);
             }
         }
+
+        if (vertices.Count == 0)
+            return;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+        {
+            Debug.LogWarning("No shader available for tutorial dashed lines.", this);
+            return;
+        }
+
+        if (lineMaterial == null)
+            lineMaterial = new Material(shader) { name = "TutorialDashedLineMaterial" };
+
+        GameObject lines = new GameObject("DashedLines");
+        lines.transform.SetParent(hintInstance.transform, false);
+        Mesh mesh = new Mesh { name = "TutorialDashedLines" };
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateBounds();
+        lines.AddComponent<MeshFilter>().sharedMesh = mesh;
+        MeshRenderer renderer = lines.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = lineMaterial;
+
+        MaterialPropertyBlock properties = new MaterialPropertyBlock();
+        properties.SetColor("_BaseColor", lineColor);
+        properties.SetColor("_Color", lineColor);
+        renderer.SetPropertyBlock(properties);
+        renderer.sortingLayerName = sortingLayerName;
+        renderer.sortingOrder = sortingOrder;
     }
 
     private void HandleValidSelection()
@@ -191,7 +286,16 @@ public class BallSelectionTutorial : MonoBehaviour
         validGroup.Clear();
 
         if (hintInstance != null)
+        {
+            Transform lines = hintInstance.transform.Find("DashedLines");
+            if (lines != null)
+            {
+                MeshFilter filter = lines.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
+                    Destroy(filter.sharedMesh);
+            }
             Destroy(hintInstance);
+        }
 
         hintInstance = null;
     }
