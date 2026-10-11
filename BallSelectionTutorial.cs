@@ -71,16 +71,18 @@ public class BallSelectionTutorial : MonoBehaviour
 
     private void Update()
     {
-        if (hintInstance == null || gameManager == null ||
-            gameManager.State != GameState.Playing)
+        if (hintInstance == null)
             return;
 
+        // Do not recheck group geometry every frame: bouncing balls can
+        // temporarily invalidate a group and cause the hint to flicker.
+        // Group validity is checked only when a new ball spawns.
         if (hintedCenter == null ||
-            !BallGroupFinder.TryGetValidGroup(
-                hintedCenter, gameManager.Balls, validGroup))
+            hintedCenter.IsBouncing ||
+            hintedCenter.IsDestroyRequested ||
+            gameManager == null ||
+            gameManager.CurrentLevel != 1)
         {
-            // Keep the lines static; remove the entire hint when the group breaks.
-            // The next Phase 2 spawn may create a replacement.
             ClearHint();
         }
     }
@@ -157,16 +159,14 @@ public class BallSelectionTutorial : MonoBehaviour
             gameManager.CurrentPhase != GamePhase.Phase2)
             return;
 
-        if (hintInstance != null)
-        {
-            if (hintedCenter == null ||
-                !BallGroupFinder.TryGetValidGroup(
-                    hintedCenter, gameManager.Balls, validGroup))
-                ClearHint();
-
-            // Do not replace a broken hint on this same spawn.
+        // Restore the original spawn-driven revalidation. Keep the hint
+        // when its center still has a valid group; otherwise replace it.
+        if (hintedCenter != null &&
+            BallGroupFinder.TryGetValidGroup(
+                hintedCenter, gameManager.Balls, validGroup))
             return;
-        }
+
+        ClearHint();
 
         if (hintPrefab == null)
             return;
