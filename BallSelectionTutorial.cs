@@ -145,8 +145,19 @@ public class BallSelectionTutorial : MonoBehaviour
     private void SyncState()
     {
         if (gameManager == null || completed ||
-            gameManager.CurrentLevel != 1 ||
-            gameManager.State != GameState.Playing)
+            gameManager.CurrentLevel != 1)
+        {
+            waitingForPhase2 = false;
+            ClearHint();
+            return;
+        }
+
+        // Pause preserves the current pointer and tutorial progress.
+        // Update already suspends the pulse animation while paused.
+        if (gameManager.State == GameState.Paused)
+            return;
+
+        if (gameManager.State != GameState.Playing)
         {
             waitingForPhase2 = false;
             ClearHint();
