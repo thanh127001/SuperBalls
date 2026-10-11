@@ -27,6 +27,7 @@ public class BallSelectionTutorial : MonoBehaviour
     [SerializeField] private int sortingOrder = 32767;
 
     private Material lineMaterial;
+    private Texture2D dotTexture;
 
     private void Awake()
     {
@@ -89,6 +90,8 @@ public class BallSelectionTutorial : MonoBehaviour
     {
         if (lineMaterial != null)
             Destroy(lineMaterial);
+        if (dotTexture != null)
+            Destroy(dotTexture);
     }
 
     private void FindReferences()
@@ -184,23 +187,24 @@ public class BallSelectionTutorial : MonoBehaviour
                 candidate.transform.position + hintOffset,
                 Quaternion.identity);
 
-            CreateDashedLines();
+            CreateDottedLines();
             return;
         }
     }
 
-    private void CreateDashedLines()
+    private void CreateDottedLines()
     {
         if (hintInstance == null || hintedCenter == null)
             return;
 
-        List<Vector3> vertices = new(128);
-        List<int> triangles = new(192);
-        float step = Mathf.Max(0.001f, dotSpacing);
-        float radius = Mathf.Max(0.001f, dotDiameter) * 0.5f;
-        const int circleSegments = 12;
+        if (!EnsureDotMaterial())
+            return;
+
         Vector3 center = hintedCenter.transform.position;
-        Matrix4x4 worldToLocal = hintInstance.transform.worldToLocalMatrix;
+        Matrix4x4 toLocal = hintInstance.transform.worldToLocalMatrix;
+        float diameter = Mathf.Max(0.001f, dotDiameter);
+        float spacing = Mathf.Max(diameter, dotSpacing);
+        int lineIndex = 0;
 
         for (int i = 0; i < validGroup.Count; i++)
         {
@@ -208,70 +212,80 @@ public class BallSelectionTutorial : MonoBehaviour
             if (ball == null || ball == hintedCenter)
                 continue;
 
-            Vector3 delta = ball.transform.position - center;
-            delta.z = 0f;
-            float length = delta.magnitude;
+            Vector3 target = ball.transform.position;
+            float length = Vector2.Distance(center, target);
             if (length <= 0.0001f)
                 continue;
 
-            Vector3 direction = delta / length;
-            // Evenly distribute round dots; their geometry stays fixed.
-            int dotCount = Mathf.Max(2, Mathf.CeilToInt(length / step) + 1);
-            for (int dotIndex = 0; dotIndex < dotCount; dotIndex++)
-            {
-                float distance = length * dotIndex / (dotCount - 1);
-                Vector3 dotCenter = center + direction * distance;
-                int first = vertices.Count;
-                vertices.Add(worldToLocal.MultiplyPoint3x4(dotCenter));
-                for (int segment = 0; segment <= circleSegments; segment++)
-                {
-                    float angle = segment * (Mathf.PI * 2f / circleSegments);
-                    Vector3 offset = new Vector3(
-                        Mathf.Cos(angle) * radius,
-                        Mathf.Sin(angle) * radius, 0f);
-                    vertices.Add(worldToLocal.MultiplyPoint3x4(dotCenter + offset));
-                }
+            GameObject child = new GameObject("DottedLine_" + (++lineIndex));
+            child.transform.SetParent(hintInstance.transform, false);
 
-                for (int segment = 0; segment < circleSegments; segment++)
-                {
-                    triangles.Add(first);
-                    triangles.Add(first + segment + 1);
-                    triangles.Add(first + segment + 2);
-                }
+            LineRenderer line = child.AddComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.positionCount = 2;
+            line.SetPosition(0, toLocal.MultiplyPoint3x4(center));
+            line.SetPosition(1, toLocal.MultiplyPoint3x4(target));
+            line.startWidth = diameter;
+            line.endWidth = diameter;
+            line.startColor = dotColor;
+            line.endColor = dotColor;
+            line.alignment = LineAlignment.TransformZ;
+            line.textureMode = LineTextureMode.Tile;
+            // Each repeat is one round dot and its transparent gap.
+            line.textureScale = new Vector2(length / spacing, 1f);
+            line.numCapVertices = 0;
+            line.numCornerVertices = 0;
+            line.sharedMaterial = lineMaterial;
+            line.sortingLayerName = sortingLayerName;
+            line.sortingOrder = sortingOrder;
+        }
+    }
+
+    private bool EnsureDotMaterial()
+    {
+        if (lineMaterial != null)
+            return true;
+
+        // Sprites/Default supports alpha blending and LineRenderer vertex colors.
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+        {
+            Debug.LogWarning("Sprites/Default shader not found for tutorial dots.", this);
+            return false;
+        }
+
+        const int size = 64;
+        dotTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            name = "TutorialRoundDotTexture",
+            wrapMode = TextureWrapMode.Repeat,
+            filterMode = FilterMode.Bilinear
+        };
+
+        Color[] pixels = new Color[size * size];
+        float radius = (size - 2) * 0.5f;
+        float center = (size - 1) * 0.5f;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - center;
+                float dy = y - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                float alpha = Mathf.Clamp01(radius - distance);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
             }
         }
 
-        if (vertices.Count == 0)
-            return;
+        dotTexture.SetPixels(pixels);
+        dotTexture.Apply(false, true);
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null)
-            shader = Shader.Find("Sprites/Default");
-        if (shader == null)
+        lineMaterial = new Material(shader)
         {
-            Debug.LogWarning("No shader available for tutorial dashed lines.", this);
-            return;
-        }
-
-        if (lineMaterial == null)
-            lineMaterial = new Material(shader) { name = "TutorialDashedLineMaterial" };
-
-        GameObject lines = new GameObject("DashedLines");
-        lines.transform.SetParent(hintInstance.transform, false);
-        Mesh mesh = new Mesh { name = "TutorialDashedLines" };
-        mesh.SetVertices(vertices);
-        mesh.SetTriangles(triangles, 0);
-        mesh.RecalculateBounds();
-        lines.AddComponent<MeshFilter>().sharedMesh = mesh;
-        MeshRenderer renderer = lines.AddComponent<MeshRenderer>();
-        renderer.sharedMaterial = lineMaterial;
-
-        MaterialPropertyBlock properties = new MaterialPropertyBlock();
-        properties.SetColor("_BaseColor", dotColor);
-        properties.SetColor("_Color", dotColor);
-        renderer.SetPropertyBlock(properties);
-        renderer.sortingLayerName = sortingLayerName;
-        renderer.sortingOrder = sortingOrder;
+            name = "TutorialRoundDotMaterial",
+            mainTexture = dotTexture
+        };
+        return true;
     }
 
     private void HandleValidSelection()
@@ -291,16 +305,7 @@ public class BallSelectionTutorial : MonoBehaviour
         validGroup.Clear();
 
         if (hintInstance != null)
-        {
-            Transform lines = hintInstance.transform.Find("DashedLines");
-            if (lines != null)
-            {
-                MeshFilter filter = lines.GetComponent<MeshFilter>();
-                if (filter != null && filter.sharedMesh != null)
-                    Destroy(filter.sharedMesh);
-            }
             Destroy(hintInstance);
-        }
 
         hintInstance = null;
     }
