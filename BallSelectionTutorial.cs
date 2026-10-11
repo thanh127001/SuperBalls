@@ -71,18 +71,9 @@ public class BallSelectionTutorial : MonoBehaviour
         if (hintInstance == null)
             return;
 
-        // Avoid per-frame group validation: physics jitter can flicker the hint.
-        if (hintedCenter == null ||
-            hintedCenter.IsBouncing ||
-            hintedCenter.IsDestroyRequested ||
-            gameManager == null ||
-            gameManager.CurrentLevel != 1)
-        {
-            ClearHint();
-            return;
-        }
-
-        if (gameManager.State != GameState.Playing)
+        // Hint selection and removal are handled by spawn/state events only.
+        // Update is dedicated to the press animation.
+        if (gameManager == null || gameManager.State != GameState.Playing)
             return;
 
         // Repeating press gesture: grow smoothly, then return to original size.
