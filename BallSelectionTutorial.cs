@@ -21,6 +21,9 @@ public class BallSelectionTutorial : MonoBehaviour
     private Vector3 hintBaseScale;
     private float pulseElapsed;
 
+    [Header("Center Stability")]
+    [SerializeField, Min(0f)] private float maxCenterSpeed = 1.5f;
+
     [Header("Press Animation")]
     [SerializeField, Min(1f)] private float pulseScale = 1.2f;
     [SerializeField, Min(0.05f)] private float pulseDuration = 0.6f;
@@ -183,7 +186,7 @@ public class BallSelectionTutorial : MonoBehaviour
         // Revalidate the currently hinted group after each spawn.
         // Keep the pointer if its center still forms a valid group.
         if (hintInstance != null &&
-            hintedCenter != null &&
+            IsCenterStable(hintedCenter) &&
             BallGroupFinder.TryGetValidGroup(
                 hintedCenter, gameManager.Balls, validGroup))
             return;
@@ -198,7 +201,8 @@ public class BallSelectionTutorial : MonoBehaviour
         for (int i = 0; i < balls.Count; i++)
         {
             Ball candidate = balls[i];
-            if (!BallGroupFinder.TryGetValidGroup(candidate, balls, validGroup))
+            if (!IsCenterStable(candidate) ||
+                !BallGroupFinder.TryGetValidGroup(candidate, balls, validGroup))
                 continue;
 
             hintedCenter = candidate;
@@ -213,6 +217,16 @@ public class BallSelectionTutorial : MonoBehaviour
             pulseElapsed = 0f;
             return;
         }
+    }
+
+    private bool IsCenterStable(Ball ball)
+    {
+        if (ball == null || !ball.IsSelectable || ball.Rigidbody == null)
+            return false;
+
+        float speedLimit = Mathf.Max(0f, maxCenterSpeed);
+        return ball.Rigidbody.linearVelocity.sqrMagnitude <=
+               speedLimit * speedLimit;
     }
 
     private void HandleValidSelection()
