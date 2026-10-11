@@ -86,6 +86,23 @@ public class BallSelectionTutorial : MonoBehaviour
             hintBaseScale * Mathf.Lerp(1f, Mathf.Max(1f, pulseScale), eased);
     }
 
+    private void LateUpdate()
+    {
+        if (hintInstance == null)
+            return;
+
+        if (hintedCenter == null)
+        {
+            ClearHint();
+            return;
+        }
+
+        // Follow the center ball in world space without inheriting its
+        // rotation or scale. LateUpdate runs after normal movement updates.
+        hintInstance.transform.position =
+            hintedCenter.transform.position + hintOffset;
+    }
+
     private void FindReferences()
     {
         if (gameManager == null)
@@ -168,13 +185,12 @@ public class BallSelectionTutorial : MonoBehaviour
                 continue;
 
             hintedCenter = candidate;
-            // Parent the hint to the center ball so it follows its movement.
-            // Preserve the prefab's intended world orientation and offset.
+            // Instantiate at the scene root to avoid inheriting the ball's
+            // rotation or scale. LateUpdate keeps the pointer centered.
             hintInstance = Instantiate(
                 hintPrefab,
                 candidate.transform.position + hintOffset,
-                Quaternion.identity,
-                candidate.transform);
+                Quaternion.identity);
 
             hintBaseScale = hintInstance.transform.localScale;
             pulseElapsed = 0f;
