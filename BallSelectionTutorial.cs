@@ -152,14 +152,10 @@ public class BallSelectionTutorial : MonoBehaviour
             gameManager.CurrentPhase != GamePhase.Phase2)
             return;
 
-        // Restore the original spawn-driven revalidation. Keep the hint
-        // when its center still has a valid group; otherwise replace it.
-        if (hintedCenter != null &&
-            BallGroupFinder.TryGetValidGroup(
-                hintedCenter, gameManager.Balls, validGroup))
+        // Once a pointer is shown, keep it until the tutorial ends
+        // or another lifecycle event clears it. Do not revalidate on spawn.
+        if (hintInstance != null)
             return;
-
-        ClearHint();
 
         if (hintPrefab == null)
             return;
