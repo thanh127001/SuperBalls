@@ -198,25 +198,34 @@ public class BallSelectionTutorial : MonoBehaviour
             return;
 
         IReadOnlyList<Ball> balls = gameManager.Balls;
+        Ball lowestValidCenter = null;
+        float lowestY = float.PositiveInfinity;
+
         for (int i = 0; i < balls.Count; i++)
         {
             Ball candidate = balls[i];
             if (!IsCenterStable(candidate) ||
+                candidate.transform.position.y >= lowestY ||
                 !BallGroupFinder.TryGetValidGroup(candidate, balls, validGroup))
                 continue;
 
-            hintedCenter = candidate;
-            // Instantiate at the scene root to avoid inheriting the ball's
-            // rotation or scale. LateUpdate keeps the pointer centered.
-            hintInstance = Instantiate(
-                hintPrefab,
-                candidate.transform.position + hintOffset,
-                Quaternion.identity);
-
-            hintBaseScale = hintInstance.transform.localScale;
-            pulseElapsed = 0f;
-            return;
+            lowestValidCenter = candidate;
+            lowestY = candidate.transform.position.y;
         }
+
+        if (lowestValidCenter == null)
+            return;
+
+        hintedCenter = lowestValidCenter;
+        // Instantiate at the scene root to avoid inheriting the ball's
+        // rotation or scale. LateUpdate keeps the pointer centered.
+        hintInstance = Instantiate(
+            hintPrefab,
+            lowestValidCenter.transform.position + hintOffset,
+            Quaternion.identity);
+
+        hintBaseScale = hintInstance.transform.localScale;
+        pulseElapsed = 0f;
     }
 
     private bool IsCenterStable(Ball ball)
