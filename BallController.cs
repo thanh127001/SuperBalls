@@ -105,6 +105,9 @@ public class BallController : MonoBehaviour
             new(64);
 
 
+    // Notification only: the player selected a valid group.
+    public event Action OnValidGroupSelected;
+
     /*
      * ========================================
      * UNITY
@@ -741,6 +744,8 @@ public class BallController : MonoBehaviour
                 selectedBallCount
             );
         }
+
+        OnValidGroupSelected?.Invoke();
 
         ClearSelectionCollections();
     }

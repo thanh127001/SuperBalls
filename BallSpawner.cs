@@ -166,6 +166,9 @@ public class BallSpawner : MonoBehaviour
 
     public event Action OnAntiStuck;
 
+    // Notification only: a ball was successfully spawned and registered.
+    public event Action OnBallSpawned;
+
 
     /*
      * ========================================
@@ -653,6 +656,7 @@ public class BallSpawner : MonoBehaviour
             spawnedBall
         );
 
+        OnBallSpawned?.Invoke();
 
         return spawnedBall;
     }
