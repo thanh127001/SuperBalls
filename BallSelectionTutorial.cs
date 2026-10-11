@@ -18,15 +18,12 @@ public class BallSelectionTutorial : MonoBehaviour
     private GameObject hintInstance;
     private bool completed;
     private bool waitingForPhase2;
+    private Vector3 hintBaseScale;
+    private float pulseElapsed;
 
-    [Header("Rounded Lines")]
-    [SerializeField, Min(0.001f)] private float lineWidth = 0.035f;
-    [SerializeField] private Color lineColor = Color.white;
-    [SerializeField, Range(0, 16)] private int capVertices = 8;
-    [SerializeField] private string sortingLayerName = "Ball";
-    [SerializeField] private int sortingOrder = 32767;
-
-    private Material lineMaterial;
+    [Header("Press Animation")]
+    [SerializeField, Min(1f)] private float pulseScale = 1.2f;
+    [SerializeField, Min(0.05f)] private float pulseDuration = 0.6f;
 
     private void Awake()
     {
@@ -74,9 +71,7 @@ public class BallSelectionTutorial : MonoBehaviour
         if (hintInstance == null)
             return;
 
-        // Do not recheck group geometry every frame: bouncing balls can
-        // temporarily invalidate a group and cause the hint to flicker.
-        // Group validity is checked only when a new ball spawns.
+        // Avoid per-frame group validation: physics jitter can flicker the hint.
         if (hintedCenter == null ||
             hintedCenter.IsBouncing ||
             hintedCenter.IsDestroyRequested ||
@@ -84,13 +79,20 @@ public class BallSelectionTutorial : MonoBehaviour
             gameManager.CurrentLevel != 1)
         {
             ClearHint();
+            return;
         }
-    }
 
-    private void OnDestroy()
-    {
-        if (lineMaterial != null)
-            Destroy(lineMaterial);
+        if (gameManager.State != GameState.Playing)
+            return;
+
+        // Repeating press gesture: grow smoothly, then return to original size.
+        pulseElapsed += Time.deltaTime;
+        float duration = Mathf.Max(0.05f, pulseDuration);
+        float phase = Mathf.Repeat(pulseElapsed / duration, 1f);
+        float triangle = 1f - Mathf.Abs(phase * 2f - 1f);
+        float eased = triangle * triangle * (3f - 2f * triangle);
+        hintInstance.transform.localScale =
+            hintBaseScale * Mathf.Lerp(1f, Mathf.Max(1f, pulseScale), eased);
     }
 
     private void FindReferences()
@@ -184,67 +186,9 @@ public class BallSelectionTutorial : MonoBehaviour
                 candidate.transform.position + hintOffset,
                 Quaternion.identity);
 
-            CreateRoundedLines();
+            hintBaseScale = hintInstance.transform.localScale;
+            pulseElapsed = 0f;
             return;
-        }
-    }
-
-    private void CreateRoundedLines()
-    {
-        if (hintInstance == null || hintedCenter == null)
-            return;
-
-        if (lineMaterial == null)
-        {
-            Shader shader = Shader.Find("Sprites/Default");
-            if (shader == null)
-            {
-                Debug.LogWarning("Sprites/Default shader not found for tutorial lines.", this);
-                return;
-            }
-
-            lineMaterial = new Material(shader)
-            {
-                name = "TutorialRoundedLineMaterial"
-            };
-        }
-
-        Vector3 center = hintedCenter.transform.position;
-        Matrix4x4 toLocal = hintInstance.transform.worldToLocalMatrix;
-        int lineIndex = 0;
-
-        GameObject linesRoot = new GameObject("RoundedLines");
-        linesRoot.transform.SetParent(hintInstance.transform, false);
-
-        for (int i = 0; i < validGroup.Count; i++)
-        {
-            Ball ball = validGroup[i];
-            if (ball == null || ball == hintedCenter)
-                continue;
-
-            Vector3 target = ball.transform.position;
-            if (Vector2.Distance(center, target) <= 0.0001f)
-                continue;
-
-            GameObject child = new GameObject("RoundedLine_" + (++lineIndex));
-            child.transform.SetParent(linesRoot.transform, false);
-
-            LineRenderer line = child.AddComponent<LineRenderer>();
-            line.sharedMaterial = lineMaterial;
-            line.useWorldSpace = false;
-            line.positionCount = 2;
-            line.SetPosition(0, toLocal.MultiplyPoint3x4(center));
-            line.SetPosition(1, toLocal.MultiplyPoint3x4(target));
-            line.startWidth = Mathf.Max(0.001f, lineWidth);
-            line.endWidth = Mathf.Max(0.001f, lineWidth);
-            line.startColor = lineColor;
-            line.endColor = lineColor;
-            line.numCapVertices = capVertices;
-            line.numCornerVertices = 0;
-            line.textureMode = LineTextureMode.Stretch;
-            line.alignment = LineAlignment.TransformZ;
-            line.sortingLayerName = sortingLayerName;
-            line.sortingOrder = sortingOrder;
         }
     }
 
@@ -268,5 +212,6 @@ public class BallSelectionTutorial : MonoBehaviour
             Destroy(hintInstance);
 
         hintInstance = null;
+        pulseElapsed = 0f;
     }
 }
