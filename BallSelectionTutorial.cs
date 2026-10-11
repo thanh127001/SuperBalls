@@ -19,11 +19,10 @@ public class BallSelectionTutorial : MonoBehaviour
     private bool completed;
     private bool waitingForPhase2;
 
-    [Header("Dashed Lines")]
-    [SerializeField, Min(0.001f)] private float lineWidth = 0.035f;
-    [SerializeField, Min(0.001f)] private float dashLength = 0.08f;
-    [SerializeField, Min(0f)] private float gapLength = 0.05f;
-    [SerializeField] private Color lineColor = Color.white;
+    [Header("Dotted Lines")]
+    [SerializeField, Min(0.001f)] private float dotDiameter = 0.035f;
+    [SerializeField, Min(0.001f)] private float dotSpacing = 0.10f;
+    [SerializeField] private Color dotColor = Color.white;
     [SerializeField] private string sortingLayerName = "Ball";
     [SerializeField] private int sortingOrder = 32767;
 
@@ -197,9 +196,9 @@ public class BallSelectionTutorial : MonoBehaviour
 
         List<Vector3> vertices = new(128);
         List<int> triangles = new(192);
-        float dash = Mathf.Max(0.001f, dashLength);
-        float step = dash + Mathf.Max(0f, gapLength);
-        float halfWidth = Mathf.Max(0.001f, lineWidth) * 0.5f;
+        float step = Mathf.Max(0.001f, dotSpacing);
+        float radius = Mathf.Max(0.001f, dotDiameter) * 0.5f;
+        const int circleSegments = 12;
         Vector3 center = hintedCenter.transform.position;
         Matrix4x4 worldToLocal = hintInstance.transform.worldToLocalMatrix;
 
@@ -216,23 +215,29 @@ public class BallSelectionTutorial : MonoBehaviour
                 continue;
 
             Vector3 direction = delta / length;
-            Vector3 side = new Vector3(-direction.y, direction.x, 0f) * halfWidth;
-
-            for (float distance = 0f; distance < length; distance += step)
+            // Evenly distribute round dots; their geometry stays fixed.
+            int dotCount = Mathf.Max(2, Mathf.CeilToInt(length / step) + 1);
+            for (int dotIndex = 0; dotIndex < dotCount; dotIndex++)
             {
-                Vector3 p0 = center + direction * distance;
-                Vector3 p1 = center + direction * Mathf.Min(distance + dash, length);
-                int index = vertices.Count;
-                vertices.Add(worldToLocal.MultiplyPoint3x4(p0 - side));
-                vertices.Add(worldToLocal.MultiplyPoint3x4(p0 + side));
-                vertices.Add(worldToLocal.MultiplyPoint3x4(p1 - side));
-                vertices.Add(worldToLocal.MultiplyPoint3x4(p1 + side));
-                triangles.Add(index);
-                triangles.Add(index + 1);
-                triangles.Add(index + 2);
-                triangles.Add(index + 2);
-                triangles.Add(index + 1);
-                triangles.Add(index + 3);
+                float distance = length * dotIndex / (dotCount - 1);
+                Vector3 dotCenter = center + direction * distance;
+                int first = vertices.Count;
+                vertices.Add(worldToLocal.MultiplyPoint3x4(dotCenter));
+                for (int segment = 0; segment <= circleSegments; segment++)
+                {
+                    float angle = segment * (Mathf.PI * 2f / circleSegments);
+                    Vector3 offset = new Vector3(
+                        Mathf.Cos(angle) * radius,
+                        Mathf.Sin(angle) * radius, 0f);
+                    vertices.Add(worldToLocal.MultiplyPoint3x4(dotCenter + offset));
+                }
+
+                for (int segment = 0; segment < circleSegments; segment++)
+                {
+                    triangles.Add(first);
+                    triangles.Add(first + segment + 1);
+                    triangles.Add(first + segment + 2);
+                }
             }
         }
 
@@ -262,8 +267,8 @@ public class BallSelectionTutorial : MonoBehaviour
         renderer.sharedMaterial = lineMaterial;
 
         MaterialPropertyBlock properties = new MaterialPropertyBlock();
-        properties.SetColor("_BaseColor", lineColor);
-        properties.SetColor("_Color", lineColor);
+        properties.SetColor("_BaseColor", dotColor);
+        properties.SetColor("_Color", dotColor);
         renderer.SetPropertyBlock(properties);
         renderer.sortingLayerName = sortingLayerName;
         renderer.sortingOrder = sortingOrder;
