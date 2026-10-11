@@ -26,8 +26,8 @@ public class BallSelectionTutorial : MonoBehaviour
     [SerializeField] private string sortingLayerName = "Ball";
     [SerializeField] private int sortingOrder = 32767;
 
-    private Material lineMaterial;
     private Texture2D dotTexture;
+    private Sprite dotSprite;
 
     private void Awake()
     {
@@ -88,8 +88,8 @@ public class BallSelectionTutorial : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (lineMaterial != null)
-            Destroy(lineMaterial);
+        if (dotSprite != null)
+            Destroy(dotSprite);
         if (dotTexture != null)
             Destroy(dotTexture);
     }
@@ -194,17 +194,16 @@ public class BallSelectionTutorial : MonoBehaviour
 
     private void CreateDottedLines()
     {
-        if (hintInstance == null || hintedCenter == null)
-            return;
-
-        if (!EnsureDotMaterial())
+        if (hintInstance == null || hintedCenter == null || !EnsureDotSprite())
             return;
 
         Vector3 center = hintedCenter.transform.position;
-        Matrix4x4 toLocal = hintInstance.transform.worldToLocalMatrix;
         float diameter = Mathf.Max(0.001f, dotDiameter);
         float spacing = Mathf.Max(diameter, dotSpacing);
         int lineIndex = 0;
+
+        GameObject linesRoot = new GameObject("DottedLines");
+        linesRoot.transform.SetParent(hintInstance.transform, false);
 
         for (int i = 0; i < validGroup.Count; i++)
         {
@@ -213,52 +212,46 @@ public class BallSelectionTutorial : MonoBehaviour
                 continue;
 
             Vector3 target = ball.transform.position;
-            float length = Vector2.Distance(center, target);
+            Vector3 delta = target - center;
+            delta.z = 0f;
+            float length = delta.magnitude;
             if (length <= 0.0001f)
                 continue;
 
-            GameObject child = new GameObject("DottedLine_" + (++lineIndex));
-            child.transform.SetParent(hintInstance.transform, false);
+            Vector3 direction = delta / length;
+            GameObject lineRoot = new GameObject("DottedLine_" + (++lineIndex));
+            lineRoot.transform.SetParent(linesRoot.transform, false);
 
-            LineRenderer line = child.AddComponent<LineRenderer>();
-            line.useWorldSpace = false;
-            line.positionCount = 2;
-            line.SetPosition(0, toLocal.MultiplyPoint3x4(center));
-            line.SetPosition(1, toLocal.MultiplyPoint3x4(target));
-            line.startWidth = diameter;
-            line.endWidth = diameter;
-            line.startColor = dotColor;
-            line.endColor = dotColor;
-            line.alignment = LineAlignment.TransformZ;
-            line.textureMode = LineTextureMode.Tile;
-            // Each repeat is one round dot and its transparent gap.
-            line.textureScale = new Vector2(length / spacing, 1f);
-            line.numCapVertices = 0;
-            line.numCornerVertices = 0;
-            line.sharedMaterial = lineMaterial;
-            line.sortingLayerName = sortingLayerName;
-            line.sortingOrder = sortingOrder;
+            // Keep a constant diameter and distribute dots evenly along the line.
+            int intervals = Mathf.Max(1, Mathf.RoundToInt(length / spacing));
+            for (int j = 0; j <= intervals; j++)
+            {
+                float distance = length * j / intervals;
+                Vector3 worldPosition = center + direction * distance;
+                GameObject dot = new GameObject("Dot_" + j);
+                dot.transform.SetParent(lineRoot.transform, false);
+                dot.transform.position = worldPosition;
+                dot.transform.localScale = Vector3.one * diameter;
+
+                SpriteRenderer renderer = dot.AddComponent<SpriteRenderer>();
+                renderer.sprite = dotSprite;
+                renderer.color = dotColor;
+                renderer.sortingLayerName = sortingLayerName;
+                renderer.sortingOrder = sortingOrder;
+            }
         }
     }
 
-    private bool EnsureDotMaterial()
+    private bool EnsureDotSprite()
     {
-        if (lineMaterial != null)
+        if (dotSprite != null)
             return true;
-
-        // Sprites/Default supports alpha blending and LineRenderer vertex colors.
-        Shader shader = Shader.Find("Sprites/Default");
-        if (shader == null)
-        {
-            Debug.LogWarning("Sprites/Default shader not found for tutorial dots.", this);
-            return false;
-        }
 
         const int size = 64;
         dotTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {
             name = "TutorialRoundDotTexture",
-            wrapMode = TextureWrapMode.Repeat,
+            wrapMode = TextureWrapMode.Clamp,
             filterMode = FilterMode.Bilinear
         };
 
@@ -279,12 +272,12 @@ public class BallSelectionTutorial : MonoBehaviour
 
         dotTexture.SetPixels(pixels);
         dotTexture.Apply(false, true);
-
-        lineMaterial = new Material(shader)
-        {
-            name = "TutorialRoundDotMaterial",
-            mainTexture = dotTexture
-        };
+        dotSprite = Sprite.Create(
+            dotTexture,
+            new Rect(0f, 0f, size, size),
+            new Vector2(0.5f, 0.5f),
+            size);
+        dotSprite.name = "TutorialRoundDotSprite";
         return true;
     }
 
