@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(SpriteRenderer))]
 public class SelectionCircle : MonoBehaviour
 {
     /*
@@ -121,10 +120,11 @@ public class SelectionCircle : MonoBehaviour
         Color baseColor =
             spriteRenderer.color;
 
-        baseColor.a = 1f;
-
-        spriteRenderer.color =
-            baseColor;
+        if (spriteRenderer != null)
+        {
+            baseColor.a = 1f;
+            spriteRenderer.color = baseColor;
+        }
 
 
         /*
@@ -193,8 +193,10 @@ public class SelectionCircle : MonoBehaviour
             color.a =
                 alpha;
 
-            spriteRenderer.color =
-                color;
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = color;
+            }
 
 
             yield return null;
@@ -217,8 +219,10 @@ public class SelectionCircle : MonoBehaviour
 
         finalColor.a = 0f;
 
-        spriteRenderer.color =
-            finalColor;
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = finalColor;
+        }
 
 
         effectRoutine = null;
