@@ -6,8 +6,8 @@ using UnityEngine.UI;
 public class SliderAutoVisibility : MonoBehaviour
 {
     private Slider slider;
-    private RectTransform handle;
-    private bool? lastVisible;
+    private RectTransform currentHandle;
+    private CanvasGroup handleCanvasGroup;
 
     private void Awake()
     {
@@ -17,6 +17,9 @@ public class SliderAutoVisibility : MonoBehaviour
 
     private void OnEnable()
     {
+        if (slider == null)
+            slider = GetComponent<Slider>();
+
         slider.onValueChanged.AddListener(HandleValueChanged);
         RefreshVisibility();
     }
@@ -29,7 +32,7 @@ public class SliderAutoVisibility : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Also detect changes to maxValue or the assigned Handle.
+        // Also responds when maxValue or handleRect changes.
         RefreshVisibility();
     }
 
@@ -43,21 +46,25 @@ public class SliderAutoVisibility : MonoBehaviour
         if (slider == null)
             return;
 
-        RectTransform currentHandle = slider.handleRect;
-        if (handle != currentHandle)
+        RectTransform handle = slider.handleRect;
+        if (handle == null || handle == transform)
+            return;
+
+        if (currentHandle != handle || handleCanvasGroup == null)
         {
-            handle = currentHandle;
-            lastVisible = null;
+            currentHandle = handle;
+            handleCanvasGroup = handle.GetComponent<CanvasGroup>();
+            if (handleCanvasGroup == null)
+                handleCanvasGroup = handle.gameObject.AddComponent<CanvasGroup>();
         }
 
-        if (handle == null || handle.gameObject == gameObject)
-            return;
-
         bool visible = slider.value > 0f && slider.value < slider.maxValue;
-        if (lastVisible == visible && handle.gameObject.activeSelf == visible)
-            return;
+        float targetAlpha = visible ? 1f : 0f;
 
-        handle.gameObject.SetActive(visible);
-        lastVisible = visible;
+        if (!Mathf.Approximately(handleCanvasGroup.alpha, targetAlpha))
+            handleCanvasGroup.alpha = targetAlpha;
+
+        handleCanvasGroup.interactable = visible;
+        handleCanvasGroup.blocksRaycasts = visible;
     }
 }
