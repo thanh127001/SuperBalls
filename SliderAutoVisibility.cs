@@ -7,7 +7,7 @@ public class SliderAutoVisibility : MonoBehaviour
 {
     private Slider slider;
     private RectTransform currentHandle;
-    private CanvasGroup handleCanvasGroup;
+    private Graphic[] handleGraphics;
 
     private void Awake()
     {
@@ -32,7 +32,7 @@ public class SliderAutoVisibility : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Also responds when maxValue or handleRect changes.
+        // Detect maxValue and Handle Rect changes as well as value changes.
         RefreshVisibility();
     }
 
@@ -50,21 +50,17 @@ public class SliderAutoVisibility : MonoBehaviour
         if (handle == null || handle == transform)
             return;
 
-        if (currentHandle != handle || handleCanvasGroup == null)
+        if (currentHandle != handle || handleGraphics == null)
         {
             currentHandle = handle;
-            handleCanvasGroup = handle.GetComponent<CanvasGroup>();
-            if (handleCanvasGroup == null)
-                handleCanvasGroup = handle.gameObject.AddComponent<CanvasGroup>();
+            handleGraphics = handle.GetComponentsInChildren<Graphic>(true);
         }
 
         bool visible = slider.value > 0f && slider.value < slider.maxValue;
-        float targetAlpha = visible ? 1f : 0f;
-
-        if (!Mathf.Approximately(handleCanvasGroup.alpha, targetAlpha))
-            handleCanvasGroup.alpha = targetAlpha;
-
-        handleCanvasGroup.interactable = visible;
-        handleCanvasGroup.blocksRaycasts = visible;
+        foreach (Graphic graphic in handleGraphics)
+        {
+            if (graphic != null && graphic.enabled != visible)
+                graphic.enabled = visible;
+        }
     }
 }
