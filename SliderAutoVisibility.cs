@@ -8,11 +8,12 @@ public class SliderAutoVisibility : MonoBehaviour
     private Slider slider;
     private RectTransform currentHandle;
     private Graphic[] handleGraphics;
+    private float previousValue;
+    private bool initialized;
 
     private void Awake()
     {
         slider = GetComponent<Slider>();
-        RefreshVisibility();
     }
 
     private void OnEnable()
@@ -20,23 +21,12 @@ public class SliderAutoVisibility : MonoBehaviour
         if (slider == null)
             slider = GetComponent<Slider>();
 
-        slider.onValueChanged.AddListener(HandleValueChanged);
+        previousValue = slider.value;
+        initialized = true;
         RefreshVisibility();
-    }
-
-    private void OnDisable()
-    {
-        if (slider != null)
-            slider.onValueChanged.RemoveListener(HandleValueChanged);
     }
 
     private void LateUpdate()
-    {
-        // Detect maxValue and Handle Rect changes as well as value changes.
-        RefreshVisibility();
-    }
-
-    private void HandleValueChanged(float value)
     {
         RefreshVisibility();
     }
@@ -56,11 +46,17 @@ public class SliderAutoVisibility : MonoBehaviour
             handleGraphics = handle.GetComponentsInChildren<Graphic>(true);
         }
 
-        bool visible = slider.value > 0f && slider.value < slider.maxValue;
+        float value = slider.value;
+        bool decreasing = initialized && value < previousValue && !Mathf.Approximately(value, previousValue);
+        bool visible = value > 0f && value < slider.maxValue && !decreasing;
+
         foreach (Graphic graphic in handleGraphics)
         {
             if (graphic != null && graphic.enabled != visible)
                 graphic.enabled = visible;
         }
+
+        previousValue = value;
+        initialized = true;
     }
 }
