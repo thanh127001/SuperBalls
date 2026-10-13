@@ -107,14 +107,10 @@ public class ScoreController : MonoBehaviour
     [SerializeField] private ParticleSystem comboEffect;
 
 
-    private float completedComboProgressDuration = 2f;
-
-
     private float comboProgressAnimationDuration = 0.2f;
 
     private Coroutine scoreProgressAnimationCoroutine;
     private Coroutine comboProgressAnimationCoroutine;
-    private Coroutine completedComboProgressCoroutine;
 
     private int previousComboScore;
 
@@ -153,13 +149,7 @@ public class ScoreController : MonoBehaviour
                 scoreProgressAnimationDuration
             );
 
-        completedComboProgressDuration =
-            Mathf.Max(
-                0f,
-                completedComboProgressDuration
-            );
-
-        comboProgressAnimationDuration =
+comboProgressAnimationDuration =
             Mathf.Max(
                 0.01f,
                 comboProgressAnimationDuration
@@ -524,21 +514,7 @@ public class ScoreController : MonoBehaviour
         previousComboScore =
             currentComboScore;
 
-        if (currentComboScore <= 0 &&
-            completedComboProgressCoroutine !=
-            null)
-        {
-            return;
-        }
-
-        if (currentComboScore > 0 &&
-            completedComboProgressCoroutine !=
-            null)
-        {
-            CancelCompletedComboProgressCoroutine();
-        }
-
-        if (requiredComboScore <= 0)
+if (requiredComboScore <= 0)
         {
             AnimateComboProgress(0f);
             return;
@@ -573,10 +549,7 @@ public class ScoreController : MonoBehaviour
             return;
         }
 
-        if (completedComboProgressCoroutine !=
-                null ||
-            comboProgressAnimationCoroutine !=
-                null)
+        if (comboProgressAnimationCoroutine != null)
         {
             return;
         }
@@ -587,64 +560,14 @@ public class ScoreController : MonoBehaviour
             );
     }
 
-    private void HandleComboCompleted(
-        BallType ballType)
+    private void HandleComboCompleted(BallType ballType)
     {
         StopComboProgressAnimation();
 
-        CancelCompletedComboProgressCoroutine();
-
-        if (comboProgress != null)
-        {
-            comboProgress.value = 1f;
-        }
-
         if (comboEffect != null)
         {
-            comboEffect.Stop(
-                true,
-                ParticleSystemStopBehavior
-                    .StopEmittingAndClear
-            );
-
+            comboEffect.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             comboEffect.Play();
-        }
-
-        completedComboProgressCoroutine =
-            StartCoroutine(
-                CompletedComboProgressRoutine()
-            );
-    }
-
-    private IEnumerator
-        CompletedComboProgressRoutine()
-    {
-        float duration =
-            Mathf.Max(
-                0f,
-                completedComboProgressDuration
-            );
-
-        if (duration > 0f)
-        {
-            yield return
-                new WaitForSecondsRealtime(
-                    duration
-                );
-        }
-
-        completedComboProgressCoroutine =
-            null;
-
-        /*
-         * Giữ đúng cơ chế hiện tại:
-         * sau thời gian hold 100%,
-         * ComboProgress về 0 ngay lập tức,
-         * không chạy ngược Handle.
-         */
-        if (comboProgress != null)
-        {
-            comboProgress.value = 0f;
         }
     }
 
@@ -723,7 +646,6 @@ public class ScoreController : MonoBehaviour
     {
         StopComboProgressAnimation();
 
-        CancelCompletedComboProgressCoroutine();
 
         if (comboProgress == null)
         {
@@ -751,28 +673,10 @@ public class ScoreController : MonoBehaviour
     }
 
     private void
-        CancelCompletedComboProgressCoroutine()
-    {
-        if (completedComboProgressCoroutine ==
-            null)
-        {
-            return;
-        }
-
-        StopCoroutine(
-            completedComboProgressCoroutine
-        );
-
-        completedComboProgressCoroutine =
-            null;
-    }
-
-    private void
         StopComboCompletionPresentation()
     {
         StopComboProgressAnimation();
 
-        CancelCompletedComboProgressCoroutine();
 
         if (comboProgress != null)
         {
