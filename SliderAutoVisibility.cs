@@ -2,16 +2,16 @@ using UnityEngine;
 using UnityEngine.UI;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Slider), typeof(CanvasGroup))]
+[RequireComponent(typeof(Slider))]
 public class SliderAutoVisibility : MonoBehaviour
 {
     private Slider slider;
-    private CanvasGroup canvasGroup;
+    private RectTransform handle;
+    private bool? lastVisible;
 
     private void Awake()
     {
         slider = GetComponent<Slider>();
-        canvasGroup = GetComponent<CanvasGroup>();
         RefreshVisibility();
     }
 
@@ -23,7 +23,14 @@ public class SliderAutoVisibility : MonoBehaviour
 
     private void OnDisable()
     {
-        slider.onValueChanged.RemoveListener(HandleValueChanged);
+        if (slider != null)
+            slider.onValueChanged.RemoveListener(HandleValueChanged);
+    }
+
+    private void LateUpdate()
+    {
+        // Also detect changes to maxValue or the assigned Handle.
+        RefreshVisibility();
     }
 
     private void HandleValueChanged(float value)
@@ -33,12 +40,24 @@ public class SliderAutoVisibility : MonoBehaviour
 
     public void RefreshVisibility()
     {
-        if (slider == null || canvasGroup == null)
+        if (slider == null)
+            return;
+
+        RectTransform currentHandle = slider.handleRect;
+        if (handle != currentHandle)
+        {
+            handle = currentHandle;
+            lastVisible = null;
+        }
+
+        if (handle == null || handle.gameObject == gameObject)
             return;
 
         bool visible = slider.value > 0f && slider.value < slider.maxValue;
-        canvasGroup.alpha = visible ? 1f : 0f;
-        canvasGroup.interactable = visible;
-        canvasGroup.blocksRaycasts = visible;
+        if (lastVisible == visible && handle.gameObject.activeSelf == visible)
+            return;
+
+        handle.gameObject.SetActive(visible);
+        lastVisible = visible;
     }
 }
