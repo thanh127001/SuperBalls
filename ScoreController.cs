@@ -508,36 +508,24 @@ comboProgressAnimationDuration =
         int requiredComboScore)
     {
         bool comboIncreased =
-            currentComboScore >
-            previousComboScore;
+            currentComboScore > previousComboScore;
 
-        previousComboScore =
-            currentComboScore;
+        previousComboScore = currentComboScore;
 
-if (requiredComboScore <= 0)
+        if (currentComboScore <= 0 || requiredComboScore <= 0)
         {
-            AnimateComboProgress(0f);
+            // Reset immediately; never animate backwards to zero.
+            SetComboImmediately(0f);
             return;
         }
-
-        float targetValue =
-            Mathf.Clamp01(
-                (float)currentComboScore /
-                requiredComboScore
-            );
 
         if (comboIncreased)
         {
-            AnimateComboProgress(
-                targetValue
+            float targetValue = Mathf.Clamp01(
+                (float)currentComboScore / requiredComboScore
             );
 
-            return;
-        }
-
-        if (currentComboScore <= 0)
-        {
-            AnimateComboProgress(0f);
+            AnimateComboProgress(targetValue);
         }
     }
 
