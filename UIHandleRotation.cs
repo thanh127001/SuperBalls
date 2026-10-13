@@ -10,6 +10,12 @@ public class UIHandleRotation : MonoBehaviour
     [SerializeField, Min(0f)]
     private float maxDegreesPerSecond = 1440f;
 
+    [SerializeField, Min(0.01f)]
+    private float smoothTime = 0.15f;
+
+    private float currentAngularVelocity;
+    private float angularVelocitySmoothing;
+
     private RectTransform rectTransform;
     private Vector3 previousPosition;
     private bool hasPreviousPosition;
@@ -25,6 +31,8 @@ public class UIHandleRotation : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
 
         previousPosition = rectTransform.position;
+        currentAngularVelocity = 0f;
+        angularVelocitySmoothing = 0f;
         hasPreviousPosition = true;
     }
 
@@ -53,18 +61,29 @@ public class UIHandleRotation : MonoBehaviour
             ? parent.InverseTransformVector(movement).x
             : movement.x;
 
-        float angularVelocity = Mathf.Clamp(
+        float targetAngularVelocity = Mathf.Clamp(
             -deltaX * degreesPerUnit / deltaTime,
             -maxDegreesPerSecond,
             maxDegreesPerSecond
         );
 
-        rectTransform.Rotate(0f, 0f, angularVelocity * deltaTime, Space.Self);
+        currentAngularVelocity = Mathf.SmoothDamp(
+            currentAngularVelocity,
+            targetAngularVelocity,
+            ref angularVelocitySmoothing,
+            smoothTime,
+            Mathf.Infinity,
+            deltaTime
+        );
+
+        rectTransform.Rotate(0f, 0f, currentAngularVelocity * deltaTime, Space.Self);
         previousPosition = currentPosition;
     }
 
     private void OnDisable()
     {
         hasPreviousPosition = false;
+        currentAngularVelocity = 0f;
+        angularVelocitySmoothing = 0f;
     }
 }
