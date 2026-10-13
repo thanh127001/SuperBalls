@@ -113,6 +113,8 @@ public class ScoreController : MonoBehaviour
     private Coroutine comboProgressAnimationCoroutine;
 
     private int previousComboScore;
+    private RectTransform cachedComboHandle;
+    private Graphic[] comboHandleGraphics;
 
     private void Awake()
     {
@@ -138,6 +140,11 @@ public class ScoreController : MonoBehaviour
     {
         UpdateComboDecay();
         UpdateComboProgressDecay();
+    }
+
+    private void LateUpdate()
+    {
+        UpdateComboHandleVisibility();
     }
 
 #if UNITY_EDITOR
@@ -640,8 +647,39 @@ comboProgressAnimationDuration =
             return;
         }
 
-        comboProgress.value =
-            Mathf.Clamp01(value);
+        float target = Mathf.Clamp01(value);
+        if (target <= 0f)
+            SetComboHandleVisible(false);
+
+        comboProgress.value = target;
+    }
+
+    private void UpdateComboHandleVisibility()
+    {
+        if (comboProgress == null)
+            return;
+
+        float value = comboProgress.value;
+        SetComboHandleVisible(value > comboProgress.minValue && value < comboProgress.maxValue);
+    }
+
+    private void SetComboHandleVisible(bool visible)
+    {
+        if (comboProgress == null || comboProgress.handleRect == null)
+            return;
+
+        RectTransform handle = comboProgress.handleRect;
+        if (handle != cachedComboHandle || comboHandleGraphics == null)
+        {
+            cachedComboHandle = handle;
+            comboHandleGraphics = handle.GetComponentsInChildren<Graphic>(true);
+        }
+
+        foreach (Graphic graphic in comboHandleGraphics)
+        {
+            if (graphic != null && graphic.enabled != visible)
+                graphic.enabled = visible;
+        }
     }
 
     private void StopComboProgressAnimation()
@@ -668,6 +706,7 @@ comboProgressAnimationDuration =
 
         if (comboProgress != null)
         {
+            SetComboHandleVisible(false);
             comboProgress.value = 0f;
         }
 
