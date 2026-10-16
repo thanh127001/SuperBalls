@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
                 BallType.BlueBall
             },
             comboDecayInterval: 1f,
-            requiredComboScore: 13,
+            requiredComboScore: 15,
             introText: "READY?"
         ),
         // Level 2
@@ -37,7 +37,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall
             },
             comboDecayInterval: 1f,
-            requiredComboScore: 13,
+            requiredComboScore: 15,
             introText: "NEW COLOR!"
         ),
         // Level 3
@@ -52,7 +52,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall
             },
             comboDecayInterval: 1f,
-            requiredComboScore: 13,
+            requiredComboScore: 15,
             introText: "COLORFUL!"
         ),
         // Level 4
@@ -63,9 +63,11 @@ public class GameManager : MonoBehaviour
                 BallType.RedBall,
                 BallType.GreenBall,
                 BallType.BlueBall,
+                BallType.YellowBall,
+                BallType.PurpleBall
             },
-            comboDecayInterval: 0.8f,
-            requiredComboScore: 13,
+            comboDecayInterval: 0.9f,
+            requiredComboScore: 14,
             introText: "FASTER!"
         ),
         // Level 5
@@ -77,6 +79,7 @@ public class GameManager : MonoBehaviour
                 BallType.GreenBall,
                 BallType.BlueBall,
                 BallType.YellowBall,
+                BallType.PurpleBall
             },
             comboDecayInterval: 0.8f,
             requiredComboScore: 13,
@@ -91,10 +94,10 @@ public class GameManager : MonoBehaviour
                 BallType.GreenBall,
                 BallType.BlueBall,
                 BallType.YellowBall,
-                BallType.PurpleBall,
+                BallType.PurpleBall
             },
-            comboDecayInterval: 0.8f,
-            requiredComboScore: 13,
+            comboDecayInterval: 0.7f,
+            requiredComboScore: 12,
             introText: "STAY SHARP!"
         ),
         // Level 7
@@ -105,9 +108,11 @@ public class GameManager : MonoBehaviour
                 BallType.RedBall,
                 BallType.GreenBall,
                 BallType.BlueBall,
+                BallType.YellowBall,
+                BallType.PurpleBall
             },
             comboDecayInterval: 0.6f,
-            requiredComboScore: 13,
+            requiredComboScore: 11,
             introText: "SPEED UP!"
         ),
         // Level 8
@@ -119,9 +124,10 @@ public class GameManager : MonoBehaviour
                 BallType.GreenBall,
                 BallType.BlueBall,
                 BallType.YellowBall,
+                BallType.PurpleBall
             },
-            comboDecayInterval: 0.6f,
-            requiredComboScore: 13,
+            comboDecayInterval: 0.5f,
+            requiredComboScore: 10,
             introText: "ALMOST THERE!"
         ),
         // Level 9
@@ -133,10 +139,10 @@ public class GameManager : MonoBehaviour
                 BallType.GreenBall,
                 BallType.BlueBall,
                 BallType.YellowBall,
-                BallType.PurpleBall,
+                BallType.PurpleBall
             },
-            comboDecayInterval: 0.6f,
-            requiredComboScore: 13,
+            comboDecayInterval: 0.4f,
+            requiredComboScore: 9,
             introText: "LAST ONE!"
         ),
     };
