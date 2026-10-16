@@ -12,13 +12,21 @@ public class UpdateManager : MonoBehaviour
     [SerializeField] private GameManager gameManager;
     [SerializeField] private GameObject updatePanel;
 
-    // Chỉ tồn tại trong bộ nhớ của phiên chạy hiện tại.
-    private bool hasCheckedForUpdate;
+    // Cache trong RAM, dùng chung trong suốt phiên chạy ứng dụng.
+    private static bool hasCheckedForUpdate;
+    private static bool hasUpdateAvailable;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSessionCache()
+    {
+        hasCheckedForUpdate = false;
+        hasUpdateAvailable = false;
+    }
 
     private void Awake()
     {
         FindReferences();
-        ApplyUpdateState(false);
+        RefreshUpdatePanel();
     }
 
     private void OnEnable()
@@ -27,13 +35,12 @@ public class UpdateManager : MonoBehaviour
 
         if (gameManager == null)
         {
+            RefreshUpdatePanel();
             return;
         }
 
         gameManager.OnGameStateChanged += HandleGameStateChanged;
-
-        // GameManager có thể đã vào Ready trước khi đăng ký sự kiện.
-        TryCheckForUpdate();
+        HandleGameStateChanged();
     }
 
     private void OnDisable()
@@ -54,7 +61,18 @@ public class UpdateManager : MonoBehaviour
 
     private void HandleGameStateChanged()
     {
+        RefreshUpdatePanel();
         TryCheckForUpdate();
+    }
+
+    private void RefreshUpdatePanel()
+    {
+        if (updatePanel != null)
+        {
+            updatePanel.SetActive(hasUpdateAvailable &&
+                gameManager != null &&
+                gameManager.State == GameState.Ready);
+        }
     }
 
     private void TryCheckForUpdate()
@@ -66,8 +84,7 @@ public class UpdateManager : MonoBehaviour
             return;
         }
 
-        // Đánh dấu ngay tại lần Ready đầu tiên, kể cả khi mất mạng.
-        // Không kiểm tra lại trong cùng phiên chạy ứng dụng.
+        // Chỉ kiểm tra một lần trong mỗi phiên, kể cả khi mất mạng hoặc API lỗi.
         hasCheckedForUpdate = true;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -83,12 +100,11 @@ public class UpdateManager : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
     private IEnumerator CheckForUpdate()
     {
-        AppUpdateManager appUpdateManager;
         GetAppUpdateInfoOperation operation;
 
         try
         {
-            appUpdateManager = new AppUpdateManager();
+            var appUpdateManager = new AppUpdateManager();
             operation = appUpdateManager.GetAppUpdateInfo();
         }
         catch (System.Exception)
@@ -108,26 +124,17 @@ public class UpdateManager : MonoBehaviour
             if (operation.IsSuccessful)
             {
                 var updateInfo = operation.GetResult();
-
-                if (updateInfo != null &&
-                    updateInfo.UpdateAvailability == UpdateAvailability.UpdateAvailable)
-                {
-                    ApplyUpdateState(true);
-                }
+                hasUpdateAvailable = updateInfo != null &&
+                    updateInfo.UpdateAvailability == UpdateAvailability.UpdateAvailable;
             }
         }
         catch (System.Exception)
         {
             // Lỗi kiểm tra cập nhật không được ảnh hưởng đến gameplay.
         }
+
+        // Nếu đã vào Playing thì chỉ lưu kết quả; panel chờ đến lần Ready tiếp theo.
+        RefreshUpdatePanel();
     }
 #endif
-
-    private void ApplyUpdateState(bool hasUpdate)
-    {
-        if (updatePanel != null)
-        {
-            updatePanel.SetActive(hasUpdate);
-        }
-    }
 }
