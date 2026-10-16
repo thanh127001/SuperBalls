@@ -45,6 +45,9 @@ public class LevelConfig
     }
 
 
+    public int RequiredComboScore { get; }
+
+
     /*
      * ========================================
      * LEVEL INTRO TEXT
@@ -71,7 +74,8 @@ public class LevelConfig
         int scoreToPass,
         BallType[] ballTypes,
         float comboDecayInterval = 1f,
-        string introText = null)
+        string introText = null,
+        int requiredComboScore = 13)
     {
         ScoreToPass =
             Mathf.Max(
@@ -90,6 +94,8 @@ public class LevelConfig
                 comboDecayInterval
             );
 
+
+        RequiredComboScore = Mathf.Max(1, requiredComboScore);
 
         IntroText =
             introText;
