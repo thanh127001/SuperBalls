@@ -98,54 +98,6 @@ public static class BallGroupFinder
 
 
     /*
-     * Try the clicked ball first. If it is not a valid center,
-     * try adjacent balls of the same type as alternative centers.
-     * The resulting group must contain the clicked ball.
-     */
-    public static bool TryGetValidGroupFromClickedBall(
-        Ball clickedBall,
-        IReadOnlyList<Ball> balls,
-        List<Ball> targetGroup)
-    {
-        if (TryGetValidGroup(clickedBall, balls, targetGroup))
-        {
-            return true;
-        }
-
-        if (targetGroup == null || !CanParticipate(clickedBall, balls))
-        {
-            return false;
-        }
-
-        float searchDistance = GetWorldDiameter(clickedBall);
-        if (searchDistance <= 0f)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < Directions.Length; i++)
-        {
-            Ball neighbor = FindNearestBall(
-                clickedBall, Directions[i], searchDistance, balls);
-
-            if (neighbor == null || neighbor.BallType != clickedBall.BallType)
-            {
-                continue;
-            }
-
-            if (TryGetValidGroup(neighbor, balls, targetGroup) &&
-                targetGroup.Contains(clickedBall))
-            {
-                return true;
-            }
-        }
-
-        targetGroup.Clear();
-        return false;
-    }
-
-
-    /*
      * ========================================
      * NEIGHBOR
      * ========================================
