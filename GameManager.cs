@@ -23,6 +23,7 @@ public class GameManager : MonoBehaviour
                 BallType.BlueBall
             },
             comboDecayInterval: 1f,
+            requiredComboScore: 13,
             introText: "READY?"
         ),
         // Level 2
@@ -36,6 +37,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall
             },
             comboDecayInterval: 1f,
+            requiredComboScore: 13,
             introText: "NEW COLOR!"
         ),
         // Level 3
@@ -50,6 +52,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall
             },
             comboDecayInterval: 1f,
+            requiredComboScore: 13,
             introText: "COLORFUL!"
         ),
         // Level 4
@@ -62,6 +65,7 @@ public class GameManager : MonoBehaviour
                 BallType.BlueBall,
             },
             comboDecayInterval: 0.8f,
+            requiredComboScore: 13,
             introText: "FASTER!"
         ),
         // Level 5
@@ -75,6 +79,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall,
             },
             comboDecayInterval: 0.8f,
+            requiredComboScore: 13,
             introText: "KEEP GOING!"
         ),
         // Level 6
@@ -89,6 +94,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall,
             },
             comboDecayInterval: 0.8f,
+            requiredComboScore: 13,
             introText: "STAY SHARP!"
         ),
         // Level 7
@@ -101,6 +107,7 @@ public class GameManager : MonoBehaviour
                 BallType.BlueBall,
             },
             comboDecayInterval: 0.6f,
+            requiredComboScore: 13,
             introText: "SPEED UP!"
         ),
         // Level 8
@@ -114,6 +121,7 @@ public class GameManager : MonoBehaviour
                 BallType.YellowBall,
             },
             comboDecayInterval: 0.6f,
+            requiredComboScore: 13,
             introText: "ALMOST THERE!"
         ),
         // Level 9
@@ -128,6 +136,7 @@ public class GameManager : MonoBehaviour
                 BallType.PurpleBall,
             },
             comboDecayInterval: 0.6f,
+            requiredComboScore: 13,
             introText: "LAST ONE!"
         ),
     };
