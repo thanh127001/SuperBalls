@@ -3,6 +3,7 @@ using UnityEngine;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
 using Google.Play.AppUpdate;
+using Google.Play.Common;
 #endif
 
 [DisallowMultipleComponent]
@@ -100,7 +101,7 @@ public class UpdateManager : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
     private IEnumerator CheckForUpdate()
     {
-        GetAppUpdateInfoOperation operation;
+        PlayAsyncOperation<AppUpdateInfo, AppUpdateErrorCode> operation;
 
         try
         {
