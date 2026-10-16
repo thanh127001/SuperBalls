@@ -710,7 +710,7 @@ public class BallController : MonoBehaviour
 
         gameManager.RemoveNullBalls();
 
-        if (!BallGroupFinder.TryGetValidGroupFromClickedBall(
+        if (!BallGroupFinder.TryGetValidGroup(
                 centerBall,
                 gameManager.Balls,
                 connectedBalls))
