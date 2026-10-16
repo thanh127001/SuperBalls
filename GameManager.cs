@@ -441,17 +441,6 @@ public class GameManager : MonoBehaviour
         NewGame();
     }
 
-    private void OnApplicationFocus(
-        bool hasFocus)
-    {
-#if !UNITY_EDITOR
-        if (!hasFocus)
-        {
-            PauseGame();
-        }
-#endif
-    }
-
     private void OnApplicationPause(
         bool pauseStatus)
     {
