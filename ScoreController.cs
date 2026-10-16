@@ -10,7 +10,21 @@ public class ScoreController : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameManager gameManager;
 
-    public const int RequiredComboScore = 13;
+    public int RequiredComboScore
+    {
+        get
+        {
+            LevelConfig config =
+                gameManager != null
+                    ? gameManager.GetCurrentLevelConfig()
+                    : null;
+
+            return Mathf.Max(
+                1,
+                config?.RequiredComboScore ?? 13
+            );
+        }
+    }
 
     public event Action OnValidSelection;
     public event Action OnComboChanged;
