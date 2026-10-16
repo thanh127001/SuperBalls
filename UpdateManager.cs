@@ -1,51 +1,25 @@
+using System.Collections;
 using UnityEngine;
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+using Google.Play.AppUpdate;
+#endif
 
 [DisallowMultipleComponent]
 public class UpdateManager : MonoBehaviour
 {
-    /*
-     * ========================================
-     * REFERENCES
-     * ========================================
-     */
-
     [Header("References")]
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private GameObject updatePanel;
 
-    [SerializeField]
-    private GameManager gameManager;
-
-    [SerializeField]
-    private GameObject updatePanel;
-
-
-    /*
-     * ========================================
-     * UPDATE
-     * ========================================
-     */
-
-    [Header("Update")]
-
-    [Tooltip("Tạm thời dùng để giả lập kết quả kiểm tra update.")]
-    [SerializeField]
-    private bool hasUpdate = false;
-
+    // Chỉ tồn tại trong bộ nhớ của phiên chạy hiện tại.
     private bool hasCheckedForUpdate;
-
-
-    /*
-     * ========================================
-     * UNITY
-     * ========================================
-     */
 
     private void Awake()
     {
         FindReferences();
-
-        ApplyUpdateState();
+        ApplyUpdateState(false);
     }
-
 
     private void OnEnable()
     {
@@ -56,111 +30,93 @@ public class UpdateManager : MonoBehaviour
             return;
         }
 
-        gameManager.OnGameStateChanged +=
-            HandleGameStateChanged;
+        gameManager.OnGameStateChanged += HandleGameStateChanged;
 
-
-        /*
-         * Trường hợp GameManager đã vào Ready
-         * trước khi UpdateManager subscribe event.
-         */
-        if (gameManager.State == GameState.Ready)
-        {
-            CheckForUpdate();
-        }
+        // GameManager có thể đã vào Ready trước khi đăng ký sự kiện.
+        TryCheckForUpdate();
     }
-
 
     private void OnDisable()
     {
         if (gameManager != null)
         {
-            gameManager.OnGameStateChanged -=
-                HandleGameStateChanged;
+            gameManager.OnGameStateChanged -= HandleGameStateChanged;
         }
     }
-
-
-    /*
-     * ========================================
-     * REFERENCES
-     * ========================================
-     */
 
     private void FindReferences()
     {
         if (gameManager == null)
         {
-            gameManager =
-                FindFirstObjectByType<GameManager>();
+            gameManager = FindFirstObjectByType<GameManager>();
         }
     }
 
-
-    /*
-     * ========================================
-     * GAME STATE
-     * ========================================
-     */
-
     private void HandleGameStateChanged()
     {
-        if (gameManager == null ||
+        TryCheckForUpdate();
+    }
+
+    private void TryCheckForUpdate()
+    {
+        if (hasCheckedForUpdate ||
+            gameManager == null ||
             gameManager.State != GameState.Ready)
         {
             return;
         }
 
-        CheckForUpdate();
-    }
-
-
-    /*
-     * ========================================
-     * UPDATE CHECK
-     * ========================================
-     */
-
-    private void CheckForUpdate()
-    {
-        if (hasCheckedForUpdate)
-        {
-            return;
-        }
-
+        // Đánh dấu ngay tại lần Ready đầu tiên, kể cả khi mất mạng.
+        // Không kiểm tra lại trong cùng phiên chạy ứng dụng.
         hasCheckedForUpdate = true;
 
-        /*
-         * Chỉ kiểm tra update một lần trong
-         * vòng đời hiện tại của ứng dụng:
-         * lần đầu tiên game vào Ready.
-         *
-         * TODO:
-         * Sau này thay bằng logic kiểm tra
-         * update thật.
-         *
-         * Ví dụ:
-         *
-         * hasUpdate = ...;
-         */
-
-        ApplyUpdateState();
-    }
-
-
-    /*
-     * ========================================
-     * UI
-     * ========================================
-     */
-
-    private void ApplyUpdateState()
-    {
-        if (updatePanel == null)
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (Application.internetReachability == NetworkReachability.NotReachable)
         {
             return;
         }
 
-        updatePanel.SetActive(hasUpdate);
+        StartCoroutine(CheckForUpdate());
+#endif
+    }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private IEnumerator CheckForUpdate()
+    {
+        AppUpdateManager appUpdateManager;
+
+        try
+        {
+            appUpdateManager = new AppUpdateManager();
+        }
+        catch (System.Exception)
+        {
+            yield break;
+        }
+
+        var operation = appUpdateManager.GetAppUpdateInfo();
+        yield return operation;
+
+        if (!isActiveAndEnabled || !operation.IsSuccessful)
+        {
+            yield break;
+        }
+
+        var updateInfo = operation.GetResult();
+
+        if (updateInfo != null &&
+            updateInfo.UpdateAvailability == UpdateAvailability.UpdateAvailable)
+        {
+            ApplyUpdateState(true);
+        }
+    }
+#endif
+
+    private void ApplyUpdateState(bool hasUpdate)
+    {
+        if (updatePanel != null)
+        {
+            updatePanel.SetActive(hasUpdate);
+        }
     }
 }
