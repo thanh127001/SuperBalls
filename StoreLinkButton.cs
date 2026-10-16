@@ -1,11 +1,15 @@
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class StoreLinkButton : MonoBehaviour
 {
-    private const string StoreUrl ="https://play.google.com/store/apps/details?id=com.king.candycrushsaga";
-
-    public void   OpenStore()
+    public void OpenStore()
     {
-        Application.OpenURL(StoreUrl);
+#if UNITY_ANDROID && !UNITY_EDITOR
+        string storeUrl =
+            $"https://play.google.com/store/apps/details?id={Application.identifier}";
+
+        Application.OpenURL(storeUrl);
+#endif
     }
 }
