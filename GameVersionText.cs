@@ -9,6 +9,6 @@ public class GameVersionText : MonoBehaviour
     {
         TMP_Text versionText = GetComponent<TMP_Text>();
 
-        versionText.text = $"Version {Application.version}";
+        versionText.text = $"Version\n{Application.version}";
     }
 }
