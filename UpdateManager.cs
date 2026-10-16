@@ -84,30 +84,41 @@ public class UpdateManager : MonoBehaviour
     private IEnumerator CheckForUpdate()
     {
         AppUpdateManager appUpdateManager;
+        GetAppUpdateInfoOperation operation;
 
         try
         {
             appUpdateManager = new AppUpdateManager();
+            operation = appUpdateManager.GetAppUpdateInfo();
         }
         catch (System.Exception)
         {
             yield break;
         }
 
-        var operation = appUpdateManager.GetAppUpdateInfo();
         yield return operation;
 
-        if (!isActiveAndEnabled || !operation.IsSuccessful)
+        if (!isActiveAndEnabled)
         {
             yield break;
         }
 
-        var updateInfo = operation.GetResult();
-
-        if (updateInfo != null &&
-            updateInfo.UpdateAvailability == UpdateAvailability.UpdateAvailable)
+        try
         {
-            ApplyUpdateState(true);
+            if (operation.IsSuccessful)
+            {
+                var updateInfo = operation.GetResult();
+
+                if (updateInfo != null &&
+                    updateInfo.UpdateAvailability == UpdateAvailability.UpdateAvailable)
+                {
+                    ApplyUpdateState(true);
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            // Lỗi kiểm tra cập nhật không được ảnh hưởng đến gameplay.
         }
     }
 #endif
