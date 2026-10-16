@@ -336,7 +336,7 @@ public class GoTextController : MonoBehaviour
             scoreController.CurrentComboScore;
 
         int requiredComboScore =
-            ScoreController.RequiredComboScore;
+            scoreController.RequiredComboScore;
 
         bool comboIncreased =
             currentComboScore > previousComboScore;
