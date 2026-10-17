@@ -133,6 +133,10 @@ public class BallSpawner : MonoBehaviour
             new(5);
 
     private readonly List<Ball>
+        spawnGroup =
+            new(5);
+
+    private readonly List<Ball>
         antiStuckRemainingBalls =
             new(64);
 
@@ -594,6 +598,7 @@ public class BallSpawner : MonoBehaviour
 
 
         if (!TryGetSpawnBallType(
+                spawnX,
                 out BallType ballType))
         {
             return null;
@@ -669,6 +674,7 @@ public class BallSpawner : MonoBehaviour
      */
 
     private bool TryGetSpawnBallType(
+        float spawnX,
         out BallType ballType)
     {
         ballType = default;
@@ -698,11 +704,60 @@ public class BallSpawner : MonoBehaviour
         }
 
 
-        ballType =
-            config.GetRandomBallType();
+        // Use the highest selectable ball in the selected column as center.
+        // A pair of matching adjacent balls gets one matching spawn.
+        Ball centerBall = FindHighestBallInColumn(spawnX);
+        if (centerBall != null &&
+            BallGroupFinder.GetGroup(
+                centerBall,
+                gameManager.Balls,
+                spawnGroup) == BallGroupFinder.MinimumGroupSize - 1)
+        {
+            ballType = centerBall.BallType;
+            return true;
+        }
 
-
+        ballType = config.GetRandomBallType();
         return true;
+    }
+
+
+    private Ball FindHighestBallInColumn(float spawnX)
+    {
+        Ball highestBall = null;
+        float highestY = float.NegativeInfinity;
+        float firstSpawnX = GetFirstSpawnX();
+        int selectedColumn = GetColumnIndex(spawnX, firstSpawnX);
+
+        IReadOnlyList<Ball> balls = gameManager.Balls;
+        for (int i = 0; i < balls.Count; i++)
+        {
+            Ball ball = balls[i];
+            if (ball == null ||
+                !ball.IsSelectable ||
+                ball.IsBouncing ||
+                ball.IsDestroyRequested ||
+                ball.gameObject.layer != LayerMask.NameToLayer("Ball"))
+            {
+                continue;
+            }
+
+            if (GetColumnIndex(ball.transform.position.x, firstSpawnX) != selectedColumn)
+            {
+                continue;
+            }
+
+            float y = ball.transform.position.y;
+            if (!IsFinite(y) || y <= highestY)
+            {
+                continue;
+            }
+
+            highestY = y;
+            highestBall = ball;
+        }
+
+        return highestBall;
     }
 
 
@@ -964,10 +1019,10 @@ public class BallSpawner : MonoBehaviour
             Ball centerBall =
                 remainingBalls[i];
 
-            if (!BallGroupFinder.TryGetValidGroup(
+            if (BallGroupFinder.GetGroup(
                     centerBall,
                     remainingBalls,
-                    antiStuckGroup))
+                    antiStuckGroup) < BallGroupFinder.MinimumGroupSize)
             {
                 continue;
             }
