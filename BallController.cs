@@ -710,10 +710,10 @@ public class BallController : MonoBehaviour
 
         gameManager.RemoveNullBalls();
 
-        if (!BallGroupFinder.TryGetValidGroup(
+        if (BallGroupFinder.GetGroup(
                 centerBall,
                 gameManager.Balls,
-                connectedBalls))
+                connectedBalls) < BallGroupFinder.MinimumGroupSize)
         {
             HandleInvalidSelection();
             return;
@@ -784,10 +784,10 @@ public class BallController : MonoBehaviour
              i < gameManager.Balls.Count;
              i++)
         {
-            if (BallGroupFinder.TryGetValidGroup(
+            if (BallGroupFinder.GetGroup(
                     gameManager.Balls[i],
                     gameManager.Balls,
-                    group))
+                    group) >= BallGroupFinder.MinimumGroupSize)
             {
                 return true;
             }
@@ -824,10 +824,10 @@ public class BallController : MonoBehaviour
             Ball centerBall =
                 gameManager.Balls[i];
 
-            if (!BallGroupFinder.TryGetValidGroup(
+            if (BallGroupFinder.GetGroup(
                     centerBall,
                     gameManager.Balls,
-                    group))
+                    group) < BallGroupFinder.MinimumGroupSize)
             {
                 continue;
             }
