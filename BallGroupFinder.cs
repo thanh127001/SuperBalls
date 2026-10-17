@@ -89,23 +89,6 @@ public static class BallGroupFinder
     }
 
 
-    // Compatibility API for callers that only need valid/invalid.
-    public static bool TryGetValidGroup(
-        Ball centerBall,
-        IReadOnlyList<Ball> balls,
-        List<Ball> targetGroup)
-    {
-        int count = GetGroup(centerBall, balls, targetGroup);
-        if (count >= MinimumGroupSize)
-        {
-            return true;
-        }
-
-        targetGroup?.Clear();
-        return false;
-    }
-
-
     /*
      * ========================================
      * NEIGHBOR
