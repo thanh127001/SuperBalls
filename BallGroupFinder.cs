@@ -6,7 +6,7 @@ public static class BallGroupFinder
     private const string SelectableBallLayerName =
         "Ball";
 
-    private const int MinimumGroupSize =
+    public const int MinimumGroupSize =
         3;
 
     private static readonly Vector2[] Directions =
@@ -28,7 +28,7 @@ public static class BallGroupFinder
      * ========================================
      */
 
-    public static bool TryGetValidGroup(
+    public static int GetGroup(
         Ball centerBall,
         IReadOnlyList<Ball> balls,
         List<Ball> targetGroup)
@@ -40,7 +40,7 @@ public static class BallGroupFinder
                 centerBall,
                 balls))
         {
-            return false;
+            return 0;
         }
 
         targetGroup.Add(
@@ -55,7 +55,7 @@ public static class BallGroupFinder
         if (searchDistance <= 0f)
         {
             targetGroup.Clear();
-            return false;
+            return 0;
         }
 
         BallType targetType =
@@ -85,15 +85,7 @@ public static class BallGroupFinder
             );
         }
 
-        if (targetGroup.Count >=
-            MinimumGroupSize)
-        {
-            return true;
-        }
-
-        targetGroup.Clear();
-
-        return false;
+        return targetGroup.Count;
     }
 
 
